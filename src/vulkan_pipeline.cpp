@@ -25,19 +25,11 @@ VulkanPipeline::~VulkanPipeline()
     m_vertext_shader.reset();
     m_device.destroyShaderModule(m_fragment_shader->m_shader_module);
     m_fragment_shader.reset();
-    for (auto &frame_buffer : m_frame_buffers)
-    {
-        m_device.destroyFramebuffer(frame_buffer);
-    }
     m_device.destroyPipeline(m_graphics_pipeline);
     m_device.destroyPipelineLayout(m_pipeline_layout);
     m_device.destroyRenderPass(m_render_pass);
     m_device.destroyCommandPool(m_command_pool);
-    for (auto &image_view : m_swap_chain_image_views)
-    {
-        m_device.destroyImageView(image_view);
-    }
-    m_device.destroySwapchainKHR(m_swapchain);
+    DestroySwapChain();
     m_device.destroy();
     m_instance.destroySurfaceKHR(m_surface);
     m_instance.destroy();
@@ -46,7 +38,11 @@ VulkanPipeline::~VulkanPipeline()
 void VulkanPipeline::InitVulkan()
 {
     InitInstance();
+    InitSurface();
+    InitPhysicalDevice();
+    InitQueueFamily();
     InitDevice();
+    InitQueue();
     InitSwapChain();
     InitRenderPass();
     InitPipeline();
@@ -92,28 +88,22 @@ void VulkanPipeline::InitInstance()
     m_instance = vk::createInstance(inst_info);
 }
 
-void VulkanPipeline::InitDevice()
+void VulkanPipeline::InitPhysicalDevice()
 {
     // Pick Physical device
     // Enumerate devices
     std::vector<vk::PhysicalDevice> physic_devices = m_instance.enumeratePhysicalDevices();
 
     m_physical_device = physic_devices[0];
-    // Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
+
+     // Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
     vk::PhysicalDeviceProperties device_properties = m_physical_device.getProperties();
     vk::PhysicalDeviceFeatures device_features = m_physical_device.getFeatures();
     vk::PhysicalDeviceMemoryProperties device_memory_properties = m_physical_device.getMemoryProperties();
+}
 
-    auto properties = m_physical_device.getQueueFamilyProperties();
-    for (int i = 0; i < properties.size(); i++)
-    {
-        if (properties[i].queueFlags & vk::QueueFlagBits::eGraphics)
-        {
-            m_graphics_queue_family = i;
-            break;
-        }
-    }
-
+void VulkanPipeline::InitDevice()
+{
     vk::DeviceCreateInfo create_info;
     std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
     std::array<float, 1> priorities = {1.0f};
@@ -130,33 +120,41 @@ void VulkanPipeline::InitDevice()
         .setPpEnabledExtensionNames(extensions.data());
     m_device = m_physical_device.createDevice(create_info);
 
-    m_graphics_queue = m_device.getQueue(m_graphics_queue_family, 0);
+
 }
 
-void VulkanPipeline::InitSwapChain()
+void VulkanPipeline::InitSurface()
 {
-    // Swapchain 和具体的操作系统，窗口系统相关的
-
     // 首先创建Windows 平台的Surface
     vk::Win32SurfaceCreateInfoKHR surface_create_info = {};
     surface_create_info.hinstance = m_win_inst;
     surface_create_info.hwnd = m_win_handle;
     surface_create_info.sType = vk::StructureType::eWin32SurfaceCreateInfoKHR;
     m_instance.createWin32SurfaceKHR(&surface_create_info, nullptr, &m_surface);
+}
 
-    // present queue 用来干嘛？
+void VulkanPipeline::InitQueueFamily()
+{
     auto properties = m_physical_device.getQueueFamilyProperties();
-    std::vector<uint32_t> present_queue_indices;
     for (int i = 0; i < properties.size(); i++)
     {
-        if (m_physical_device.getWin32PresentationSupportKHR(i))
+        if (m_physical_device.getWin32PresentationSupportKHR(i) && properties[i].queueFlags & vk::QueueFlagBits::eGraphics)
         {
-            present_queue_indices.push_back(i);
+            m_graphics_queue_family = i;
             m_present_queue_family = i;
-            m_present_queue = m_device.getQueue(i, 0);
-            break;
         }
     }
+}
+
+void VulkanPipeline::InitQueue()
+{
+    m_graphics_queue = m_device.getQueue(m_graphics_queue_family, 0);
+    m_present_queue = m_device.getQueue(m_present_queue_family, 0);
+}
+
+void VulkanPipeline::InitSwapChain()
+{
+    // Swapchain 和具体的操作系统，窗口系统相关的
 
     // HINSTANCE hInstance = GetModuleHandle(NULL); // 获取当前应用程序实例的句柄
     // HWND hWnd = GetDesktopWindow(); // 获取桌面窗口句柄
@@ -172,7 +170,7 @@ void VulkanPipeline::InitSwapChain()
     vk::SwapchainCreateInfoKHR swap_chain_create_info;
     swap_chain_create_info
         .setImageSharingMode(vk::SharingMode::eExclusive)            // graphics queue and present queue 是否并行还是互斥，如果是只有一个队列就没关系了
-        .setQueueFamilyIndices(present_queue_indices)                // 使用队列
+        .setQueueFamilyIndices({m_present_queue_family})                // 使用队列
         .setPresentMode(vk::PresentModeKHR::eFifo)                   // 使用FIFO模式
         .setPreTransform(vk::SurfaceTransformFlagBitsKHR::eIdentity) // 设置到屏幕前进行变换：不变
         .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)   // 不透明
@@ -582,6 +580,40 @@ void VulkanPipeline::InitSyncObjects()
     m_in_flight_fence = m_device.createFence(fence_create_info);
 }
 
+void VulkanPipeline::HandleResize(vk::Result res)
+{
+    if (res == vk::Result::eErrorOutOfDateKHR)
+    {
+        // 如果swapchain的extent发生变化，需要重新创建swapchain
+        // https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation#page_Resizing
+    }
+}
+
+void VulkanPipeline::ReInitSwapChain()
+{
+    // 等待这个逻辑设备host的所有队列的的任务完成
+    // 相当于所有队列调用vkQueueWaitIdle
+    m_device.waitIdle();  //    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkDeviceWaitIdle.html
+    DestroySwapChain();
+    InitSwapChain();
+    InitFrameBuffers();
+}
+
+void VulkanPipeline::DestroySwapChain()
+{
+    for (auto &frame_buffer : m_frame_buffers)
+    {
+        m_device.destroyFramebuffer(frame_buffer);
+    }
+    m_frame_buffers.clear();
+    for (auto &image_view : m_swap_chain_image_views)
+    {
+        m_device.destroyImageView(image_view);
+    }
+    m_swap_chain_image_views.clear();
+    m_device.destroySwapchainKHR(m_swapchain);
+}
+
 void VulkanPipeline::draw()
 {
     // timeout UINT64_MAX 为不会超时
@@ -675,5 +707,12 @@ void VulkanPipeline::draw()
     present_info.swapchainCount = 1;
     present_info.pSwapchains = &m_swapchain;
     present_info.pImageIndices = &image_index;
-    m_present_queue.presentKHR(present_info);
+    try {
+        m_present_queue.presentKHR(present_info);
+    } catch (vk::OutOfDateKHRError) {
+        ReInitSwapChain();
+    }
+
+    // 1. resize the window会出现crash  Result::eErrorOutOfDateKHR
+    // when the swapchain becomes invalid due to window resize, acquiring or presenting an image will result in returncode VK_ERROR_OUT_OF_DATE_KHR
 }

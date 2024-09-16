@@ -50,7 +50,11 @@ private:
 
     void InitVulkan();
     void InitInstance();
+    void InitPhysicalDevice();
     void InitDevice();
+    void InitSurface();
+    void InitQueueFamily();
+    void InitQueue();
     void InitSwapChain();
     void InitRenderPass();
     void InitPipeline();
@@ -58,4 +62,9 @@ private:
     void InitCommandPool();
     void InitCommandBuffer();
     void InitSyncObjects();
+
+    void HandleResize(vk::Result res);
+    void ReInitSwapChain();
+
+    void DestroySwapChain();
 };
