@@ -1,4 +1,6 @@
 #include "vulkan_pipeline.h"
+#include "debug/debug.h"
+
 #include <iostream>
 #include <algorithm>
 #include <array>
@@ -156,6 +158,11 @@ void VulkanPipeline::InitSwapChain()
 {
     // Swapchain 和具体的操作系统，窗口系统相关的
 
+    
+    vk::SurfaceCapabilitiesKHR surface_capabilities = m_physical_device.getSurfaceCapabilitiesKHR(m_surface);
+
+    uint32_t extend_width = 0;
+    uint32_t extend_height = 0;
     // HINSTANCE hInstance = GetModuleHandle(NULL); // 获取当前应用程序实例的句柄
     // HWND hWnd = GetDesktopWindow(); // 获取桌面窗口句柄
     // 这就是依赖于全局变量了，Non-locality !
@@ -163,6 +170,20 @@ void VulkanPipeline::InitSwapChain()
     GetWindowRect(m_win_handle, &rect);      // 获取窗口大小
     int win_width = rect.right - rect.left;  // 计算窗口宽度
     int win_height = rect.bottom - rect.top; // 计算窗口高度
+    debug::print("win_width: %d, win_height: %d\n", win_width, win_height);
+
+
+    extend_width = clamp<uint32_t>(win_width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width);
+    extend_height = clamp<uint32_t>(win_height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height);
+    
+    debug::print("surface_capabilities minImageExtent: %d, %d\n", surface_capabilities.minImageExtent.width, surface_capabilities.minImageExtent.height);
+    debug::print("surface_capabilities maxImageExtent: %d, %d\n", surface_capabilities.maxImageExtent.width, surface_capabilities.maxImageExtent.height);
+    debug::print("swap_chain_extent: %d, %d\n", m_swap_chain_extent.width, m_swap_chain_extent.height);
+    // 【window minimize】最小化时值会是这样的
+    // win_width: 160, win_height: 28
+    // surface_capabilities minImageExtent: 0, 0
+    // surface_capabilities maxImageExtent: 0, 0
+    // 然后validation layer 会报提醒 extend的长宽不能为0，倒是不会崩，暂时不处理了
 
     // https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain
     // Frame Buffer and Swapchain
@@ -191,8 +212,6 @@ void VulkanPipeline::InitSwapChain()
         }
     }
 
-    auto surface_capabilities = m_physical_device.getSurfaceCapabilitiesKHR(m_surface);
-
     // However, simply sticking to this minimum means that we may sometimes have to wait on the driver to complete internal operations before we can acquire another image to render to. Therefore it is recommended to request at least one more image than the minimum:
     // 这个会让CPU等？得留意一下不同数量的图会对性能有什么影响
     // 我的电脑最少2张，最多8张耶
@@ -201,9 +220,7 @@ void VulkanPipeline::InitSwapChain()
                                            surface_capabilities.maxImageCount);
     swap_chain_create_info.setMinImageCount(image_count);
 
-    m_swap_chain_extent = vk::Extent2D(
-        clamp<uint32_t>(win_width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width),
-        clamp<uint32_t>(win_height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height));
+    m_swap_chain_extent = vk::Extent2D(extend_width, extend_height);
     swap_chain_create_info.setImageExtent(m_swap_chain_extent); // 窗口大小
 
     m_swapchain = m_device.createSwapchainKHR(swap_chain_create_info);
@@ -597,6 +614,11 @@ void VulkanPipeline::ReInitSwapChain()
     DestroySwapChain();
     InitSwapChain();
     InitFrameBuffers();
+
+    // 还要一种方法不需要等待丢掉所有的绘制命令然后再重新创建
+    // swap chain 的 create info 可以传 旧的 swapchain
+    // 这样即使正在绘制图片，也可以重新创建swapchain，牛逼
+
 }
 
 void VulkanPipeline::DestroySwapChain()
@@ -710,9 +732,14 @@ void VulkanPipeline::draw()
     try {
         m_present_queue.presentKHR(present_info);
     } catch (vk::OutOfDateKHRError) {
+        // 当窗口的大小变化的时候，这个异常会爆出来
+        // C接口的话是判断presentKHR的返回值，https://github.com/KhronosGroup/Vulkan-Hpp/issues/274 这里会说，我自己创造性的用捕捉异常的方式解决这个问题，看来我C++理解的还是不错><
+        // 处理参考代码https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation#page_Recreating-the-swap-chain
+        // 这个重新创建需要在presentKHR之后，为的是保证m_render_finished_semaphore信号量被signal了
+        // 如果需要显式的改变分辨率，就用触发变量 https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation#page_Handling-resizes-explicitly
         ReInitSwapChain();
     }
-
-    // 1. resize the window会出现crash  Result::eErrorOutOfDateKHR
-    // when the swapchain becomes invalid due to window resize, acquiring or presenting an image will result in returncode VK_ERROR_OUT_OF_DATE_KHR
+    // present error
+    // VK_ERROR_OUT_OF_DATE_KHR: The swap chain has become incompatible with the surface and can no longer be used for rendering. Usually happens after a 【window resize】.
+    // VK_SUBOPTIMAL_KHR: The swap chain can still be used to successfully present to the surface, but the surface properties are no longer matched exactly. 这个还没试过，如果这个出现也是ReInitSwapChain
 }
