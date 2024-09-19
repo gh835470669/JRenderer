@@ -1,15 +1,20 @@
 #pragma once
 
 #include "jrenderer.h"
+#include "imgui_helper/imgui_helper.h"
 
 class App
 {
 private:
     /* data */
-    JRenderer m_renderer;
+   
 public:
-    App(HINSTANCE hinst, HWND hwnd) : m_renderer(hinst, hwnd) {}
-    ~App() = default;
+    App(HINSTANCE hinst, HWND hwnd);
+    ~App();
+
+    JRenderer renderer;
+    VulkanExampleBase imgui_base;
+    ImguiHelper *imgui;
 
     void main_loop();
 };

@@ -11,19 +11,14 @@ public:
     VulkanPipeline(HINSTANCE hinst, HWND hwnd);
     ~VulkanPipeline();
 
-    void draw();
-
-private:
-    HINSTANCE m_win_inst;
-    HWND m_win_handle;
-
-    vk::Instance m_instance;
-    vk::PhysicalDevice m_physical_device;
-    vk::Device m_device;
+    
+    vk::Instance instance;
+    vk::PhysicalDevice physical_device;
+    vk::Device device;
     uint32_t m_graphics_queue_family;
     vk::Queue m_graphics_queue;
     
-    vk::SurfaceKHR m_surface;
+    vk::SurfaceKHR surface;
     uint32_t m_present_queue_family;
     vk::Queue m_present_queue;
     vk::SwapchainKHR m_swapchain;
@@ -44,6 +39,15 @@ private:
     vk::CommandPool m_command_pool;
     vk::CommandBuffer m_command_buffer;
 
+    HINSTANCE m_win_inst;
+    HWND m_win_handle;
+
+    void before_draw();
+    void draw();
+    void after_draw();
+private:
+
+
     vk::Semaphore m_image_available_semaphore;
     vk::Semaphore m_render_finished_semaphore;
     vk::Fence m_in_flight_fence;
@@ -63,7 +67,6 @@ private:
     void InitCommandBuffer();
     void InitSyncObjects();
 
-    void HandleResize(vk::Result res);
     void ReInitSwapChain();
 
     void DestroySwapChain();

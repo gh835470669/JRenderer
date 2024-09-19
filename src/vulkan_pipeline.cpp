@@ -20,21 +20,21 @@ VulkanPipeline::VulkanPipeline(HINSTANCE hinst, HWND hwnd)
 
 VulkanPipeline::~VulkanPipeline()
 {
-    m_device.destroySemaphore(m_image_available_semaphore);
-    m_device.destroySemaphore(m_render_finished_semaphore);
-    m_device.destroyFence(m_in_flight_fence);
-    m_device.destroyShaderModule(m_vertext_shader->m_shader_module);
+    device.destroySemaphore(m_image_available_semaphore);
+    device.destroySemaphore(m_render_finished_semaphore);
+    device.destroyFence(m_in_flight_fence);
+    device.destroyShaderModule(m_vertext_shader->m_shader_module);
     m_vertext_shader.reset();
-    m_device.destroyShaderModule(m_fragment_shader->m_shader_module);
+    device.destroyShaderModule(m_fragment_shader->m_shader_module);
     m_fragment_shader.reset();
-    m_device.destroyPipeline(m_graphics_pipeline);
-    m_device.destroyPipelineLayout(m_pipeline_layout);
-    m_device.destroyRenderPass(m_render_pass);
-    m_device.destroyCommandPool(m_command_pool);
+    device.destroyPipeline(m_graphics_pipeline);
+    device.destroyPipelineLayout(m_pipeline_layout);
+    device.destroyRenderPass(m_render_pass);
+    device.destroyCommandPool(m_command_pool);
     DestroySwapChain();
-    m_device.destroy();
-    m_instance.destroySurfaceKHR(m_surface);
-    m_instance.destroy();
+    device.destroy();
+    instance.destroySurfaceKHR(surface);
+    instance.destroy();
 }
 
 void VulkanPipeline::InitVulkan()
@@ -87,21 +87,21 @@ void VulkanPipeline::InitInstance()
                                            .setPpEnabledLayerNames(layers.data());
 
     // Create the Vulkan instance.
-    m_instance = vk::createInstance(inst_info);
+    instance = vk::createInstance(inst_info);
 }
 
 void VulkanPipeline::InitPhysicalDevice()
 {
     // Pick Physical device
     // Enumerate devices
-    std::vector<vk::PhysicalDevice> physic_devices = m_instance.enumeratePhysicalDevices();
+    std::vector<vk::PhysicalDevice> physic_devices = instance.enumeratePhysicalDevices();
 
-    m_physical_device = physic_devices[0];
+    physical_device = physic_devices[0];
 
      // Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
-    vk::PhysicalDeviceProperties device_properties = m_physical_device.getProperties();
-    vk::PhysicalDeviceFeatures device_features = m_physical_device.getFeatures();
-    vk::PhysicalDeviceMemoryProperties device_memory_properties = m_physical_device.getMemoryProperties();
+    vk::PhysicalDeviceProperties device_properties = physical_device.getProperties();
+    vk::PhysicalDeviceFeatures device_features = physical_device.getFeatures();
+    vk::PhysicalDeviceMemoryProperties device_memory_properties = physical_device.getMemoryProperties();
 }
 
 void VulkanPipeline::InitDevice()
@@ -120,7 +120,7 @@ void VulkanPipeline::InitDevice()
     create_info.setQueueCreateInfos(queue_create_infos)
         .setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
         .setPpEnabledExtensionNames(extensions.data());
-    m_device = m_physical_device.createDevice(create_info);
+    device = physical_device.createDevice(create_info);
 
 
 }
@@ -132,15 +132,15 @@ void VulkanPipeline::InitSurface()
     surface_create_info.hinstance = m_win_inst;
     surface_create_info.hwnd = m_win_handle;
     surface_create_info.sType = vk::StructureType::eWin32SurfaceCreateInfoKHR;
-    m_instance.createWin32SurfaceKHR(&surface_create_info, nullptr, &m_surface);
+    instance.createWin32SurfaceKHR(&surface_create_info, nullptr, &surface);
 }
 
 void VulkanPipeline::InitQueueFamily()
 {
-    auto properties = m_physical_device.getQueueFamilyProperties();
+    auto properties = physical_device.getQueueFamilyProperties();
     for (int i = 0; i < properties.size(); i++)
     {
-        if (m_physical_device.getWin32PresentationSupportKHR(i) && properties[i].queueFlags & vk::QueueFlagBits::eGraphics)
+        if (physical_device.getWin32PresentationSupportKHR(i) && properties[i].queueFlags & vk::QueueFlagBits::eGraphics)
         {
             m_graphics_queue_family = i;
             m_present_queue_family = i;
@@ -150,8 +150,8 @@ void VulkanPipeline::InitQueueFamily()
 
 void VulkanPipeline::InitQueue()
 {
-    m_graphics_queue = m_device.getQueue(m_graphics_queue_family, 0);
-    m_present_queue = m_device.getQueue(m_present_queue_family, 0);
+    m_graphics_queue = device.getQueue(m_graphics_queue_family, 0);
+    m_present_queue = device.getQueue(m_present_queue_family, 0);
 }
 
 void VulkanPipeline::InitSwapChain()
@@ -159,7 +159,7 @@ void VulkanPipeline::InitSwapChain()
     // Swapchain 和具体的操作系统，窗口系统相关的
 
     
-    vk::SurfaceCapabilitiesKHR surface_capabilities = m_physical_device.getSurfaceCapabilitiesKHR(m_surface);
+    vk::SurfaceCapabilitiesKHR surface_capabilities = physical_device.getSurfaceCapabilitiesKHR(surface);
 
     uint32_t extend_width = 0;
     uint32_t extend_height = 0;
@@ -198,9 +198,9 @@ void VulkanPipeline::InitSwapChain()
         .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)     // 颜色附件 GPU才能写
         .setImageArrayLayers(1)                                      // 一张图
         .setClipped(true)                                            // Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
-        .setSurface(m_surface);
+        .setSurface(surface);
 
-    for (auto &format : m_physical_device.getSurfaceFormatsKHR(m_surface))
+    for (auto &format : physical_device.getSurfaceFormatsKHR(surface))
     {
         if (format.format == vk::Format::eR8G8B8A8Srgb)
         {
@@ -223,10 +223,10 @@ void VulkanPipeline::InitSwapChain()
     m_swap_chain_extent = vk::Extent2D(extend_width, extend_height);
     swap_chain_create_info.setImageExtent(m_swap_chain_extent); // 窗口大小
 
-    m_swapchain = m_device.createSwapchainKHR(swap_chain_create_info);
+    m_swapchain = device.createSwapchainKHR(swap_chain_create_info);
 
     // Get SwapChain Images and Create Image Views
-    m_swap_chain_images = m_device.getSwapchainImagesKHR(m_swapchain);
+    m_swap_chain_images = device.getSwapchainImagesKHR(m_swapchain);
     m_swap_chain_image_views.reserve(m_swap_chain_images.size());
     for (size_t i = 0; i < m_swap_chain_images.size(); i++)
     {
@@ -245,7 +245,7 @@ void VulkanPipeline::InitSwapChain()
                     .setLevelCount(1)
                     .setBaseArrayLayer(0)
                     .setLayerCount(1));
-        m_swap_chain_image_views.push_back(m_device.createImageView(image_view_create_info));
+        m_swap_chain_image_views.push_back(device.createImageView(image_view_create_info));
     }
 }
 
@@ -319,7 +319,7 @@ void VulkanPipeline::InitRenderPass()
     render_pass_info.dependencyCount = 1;
     render_pass_info.pDependencies = &dependency;
 
-    m_render_pass = m_device.createRenderPass(render_pass_info);
+    m_render_pass = device.createRenderPass(render_pass_info);
 }
 
 void VulkanPipeline::InitPipeline()
@@ -332,8 +332,8 @@ void VulkanPipeline::InitPipeline()
     // https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.html
     // The compilation and linking of the SPIR-V bytecode to machine code for execution by the GPU doesn't happen until the graphics pipeline is created.
     // That means that we're allowed to destroy the shader modules again as soon as pipeline creation is finished, which is why we'll make them local variables in the createGraphicsPipeline function instead of class members:
-    m_vertext_shader = std::make_shared<Shader>("res/shaders/test_vert.spv", m_device);
-    m_fragment_shader = std::make_shared<Shader>("res/shaders/test_frag.spv", m_device);
+    m_vertext_shader = std::make_shared<Shader>("res/shaders/test_vert.spv", device);
+    m_fragment_shader = std::make_shared<Shader>("res/shaders/test_frag.spv", device);
 
     vk::PipelineShaderStageCreateInfo vert_shader_stage_create_info = {};
     vert_shader_stage_create_info.setStage(vk::ShaderStageFlagBits::eVertex)
@@ -487,7 +487,7 @@ void VulkanPipeline::InitPipeline()
     pipeline_layout_info.pSetLayouts = nullptr;         // Optional
     pipeline_layout_info.pushConstantRangeCount = 0;    // Optional
     pipeline_layout_info.pPushConstantRanges = nullptr; // Optional
-    m_pipeline_layout = m_device.createPipelineLayout(pipeline_layout_info);
+    m_pipeline_layout = device.createPipelineLayout(pipeline_layout_info);
 
     vk::GraphicsPipelineCreateInfo pipeline_info{};
     pipeline_info.stageCount = 2;
@@ -505,7 +505,7 @@ void VulkanPipeline::InitPipeline()
     pipeline_info.subpass = 0;
     pipeline_info.basePipelineHandle = nullptr; // create a new graphics pipeline by deriving from an existing pipeline
     pipeline_info.basePipelineIndex = -1;
-    auto res_value = m_device.createGraphicsPipeline(nullptr, pipeline_info);
+    auto res_value = device.createGraphicsPipeline(nullptr, pipeline_info);
     if (res_value.result != vk::Result::eSuccess)
     {
         throw std::runtime_error("failed to create graphics pipeline!");
@@ -529,7 +529,7 @@ void VulkanPipeline::InitFrameBuffers()
         frame_buffer_info.height = m_swap_chain_extent.height;
         frame_buffer_info.layers = 1;
 
-        m_frame_buffers.push_back(m_device.createFramebuffer(frame_buffer_info));
+        m_frame_buffers.push_back(device.createFramebuffer(frame_buffer_info));
     }
 }
 
@@ -541,7 +541,7 @@ void VulkanPipeline::InitCommandPool()
     cmd_pool_create_info.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
     // VK_COMMAND_POOL_CREATE_TRANSIENT_BIT: Hint that command buffers are rerecorded with new commands very often (may change memory allocation behavior)
     // VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT: Allow command buffers to be rerecorded individually, without this flag they all have to be reset together
-    m_command_pool = m_device.createCommandPool(cmd_pool_create_info);
+    m_command_pool = device.createCommandPool(cmd_pool_create_info);
 
     // for draw command or memory transfer
     // https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Command_buffers
@@ -560,7 +560,7 @@ void VulkanPipeline::InitCommandBuffer()
     // 没懂...
     cmd_buffer_allocate_info.level = vk::CommandBufferLevel::ePrimary;
     cmd_buffer_allocate_info.commandBufferCount = 1;
-    m_command_buffer = m_device.allocateCommandBuffers(cmd_buffer_allocate_info)[0];
+    m_command_buffer = device.allocateCommandBuffers(cmd_buffer_allocate_info)[0];
 }
 
 void VulkanPipeline::InitSyncObjects()
@@ -590,27 +590,18 @@ void VulkanPipeline::InitSyncObjects()
 
     vk::SemaphoreCreateInfo semaphore_create_info;
     semaphore_create_info.flags = vk::SemaphoreCreateFlags();
-    m_image_available_semaphore = m_device.createSemaphore(semaphore_create_info);
-    m_render_finished_semaphore = m_device.createSemaphore(semaphore_create_info);
+    m_image_available_semaphore = device.createSemaphore(semaphore_create_info);
+    m_render_finished_semaphore = device.createSemaphore(semaphore_create_info);
     vk::FenceCreateInfo fence_create_info;
     fence_create_info.flags = vk::FenceCreateFlagBits::eSignaled;
-    m_in_flight_fence = m_device.createFence(fence_create_info);
-}
-
-void VulkanPipeline::HandleResize(vk::Result res)
-{
-    if (res == vk::Result::eErrorOutOfDateKHR)
-    {
-        // 如果swapchain的extent发生变化，需要重新创建swapchain
-        // https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation#page_Resizing
-    }
+    m_in_flight_fence = device.createFence(fence_create_info);
 }
 
 void VulkanPipeline::ReInitSwapChain()
 {
     // 等待这个逻辑设备host的所有队列的的任务完成
     // 相当于所有队列调用vkQueueWaitIdle
-    m_device.waitIdle();  //    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkDeviceWaitIdle.html
+    device.waitIdle();  //    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkDeviceWaitIdle.html
     DestroySwapChain();
     InitSwapChain();
     InitFrameBuffers();
@@ -625,26 +616,27 @@ void VulkanPipeline::DestroySwapChain()
 {
     for (auto &frame_buffer : m_frame_buffers)
     {
-        m_device.destroyFramebuffer(frame_buffer);
+        device.destroyFramebuffer(frame_buffer);
     }
     m_frame_buffers.clear();
     for (auto &image_view : m_swap_chain_image_views)
     {
-        m_device.destroyImageView(image_view);
+        device.destroyImageView(image_view);
     }
     m_swap_chain_image_views.clear();
-    m_device.destroySwapchainKHR(m_swapchain);
+    device.destroySwapchainKHR(m_swapchain);
 }
 
-void VulkanPipeline::draw()
+
+void VulkanPipeline::before_draw()
 {
     // timeout UINT64_MAX 为不会超时
     // 可以等几个fence一起signal才执行，第二个true表示所有的都signal才会执行,false表示有就执行
-    m_device.waitForFences({m_in_flight_fence}, true, UINT64_MAX);  //  wait until the previous frame has finished
-    m_device.resetFences({m_in_flight_fence});  // reset the fence to the unsignaled state
+    device.waitForFences({m_in_flight_fence}, true, UINT64_MAX);  //  wait until the previous frame has finished
+    device.resetFences({m_in_flight_fence});  // reset the fence to the unsignaled state
 
     // 会等m_image_available_semaphore signal了，然后再执行
-    auto res = m_device.acquireNextImageKHR(m_swapchain, UINT64_MAX, m_image_available_semaphore, nullptr);
+    auto res = device.acquireNextImageKHR(m_swapchain, UINT64_MAX, m_image_available_semaphore, nullptr);
     uint32_t image_index = res.value;  // m_swap_chain_images的index
 
     // record command buffer
@@ -675,7 +667,10 @@ void VulkanPipeline::draw()
     // VK_SUBPASS_CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed.
     // VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: The render pass commands will be executed from secondary command buffers.
     m_command_buffer.beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
+}
 
+void VulkanPipeline::draw()
+{
     m_command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline);
 
     vk::Viewport viewport;
@@ -698,6 +693,10 @@ void VulkanPipeline::draw()
     // firstInstance: Used as an offset for instanced rendering, defines the lowest value of gl_InstanceIndex.
     m_command_buffer.draw(3, 1, 0, 0); 
 
+}
+
+void VulkanPipeline::after_draw()
+{
     m_command_buffer.endRenderPass();
 
     m_command_buffer.end();
@@ -728,6 +727,7 @@ void VulkanPipeline::draw()
     present_info.pWaitSemaphores = signal_semaphore;
     present_info.swapchainCount = 1;
     present_info.pSwapchains = &m_swapchain;
+    uint32_t image_index = 0;
     present_info.pImageIndices = &image_index;
     try {
         m_present_queue.presentKHR(present_info);
@@ -742,4 +742,5 @@ void VulkanPipeline::draw()
     // present error
     // VK_ERROR_OUT_OF_DATE_KHR: The swap chain has become incompatible with the surface and can no longer be used for rendering. Usually happens after a 【window resize】.
     // VK_SUBOPTIMAL_KHR: The swap chain can still be used to successfully present to the surface, but the surface properties are no longer matched exactly. 这个还没试过，如果这个出现也是ReInitSwapChain
+
 }

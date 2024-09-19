@@ -5,14 +5,14 @@
 class JRenderer
 {
 private:
-    VulkanPipeline pipeline;
-
     void tick();
     void draw();
 
 public:
     JRenderer(HINSTANCE hinst, HWND hwnd) : pipeline(hinst, hwnd) {};
     ~JRenderer();
+
+    VulkanPipeline pipeline;
 
     void main_loop();
 };
