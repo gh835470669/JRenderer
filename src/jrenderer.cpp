@@ -1,22 +1,23 @@
-#include "jrenderer.h"    
+#include "jrenderer.h"
 
-JRenderer::~JRenderer()
+namespace jre
 {
+    JRenderer::~JRenderer()
+    {
+    }
 
-}
+    void JRenderer::main_loop()
+    {
+        this->tick();
+        this->draw();
+    }
 
-void JRenderer::main_loop()
-{
-    this->tick();
-    this->draw();
-}
+    void JRenderer::tick()
+    {
+    }
 
-void JRenderer::tick()
-{
-
-}
-
-void JRenderer::draw()
-{
-    this->pipeline.draw();
-}
+    void JRenderer::draw()
+    {
+        this->pipeline.draw();
+    }
+} // namespace jre

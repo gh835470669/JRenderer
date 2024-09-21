@@ -632,27 +632,27 @@ void VulkanPipeline::before_draw()
 {
     // timeout UINT64_MAX 为不会超时
     // 可以等几个fence一起signal才执行，第二个true表示所有的都signal才会执行,false表示有就执行
-    device.waitForFences({m_in_flight_fence}, true, UINT64_MAX);  //  wait until the previous frame has finished
-    device.resetFences({m_in_flight_fence});  // reset the fence to the unsignaled state
+    m_device.waitForFences({m_in_flight_fence}, true, UINT64_MAX); //  wait until the previous frame has finished
+    m_device.resetFences({m_in_flight_fence});                     // reset the fence to the unsignaled state
 
     // 会等m_image_available_semaphore signal了，然后再执行
     auto res = device.acquireNextImageKHR(m_swapchain, UINT64_MAX, m_image_available_semaphore, nullptr);
-    uint32_t image_index = res.value;  // m_swap_chain_images的index
+    uint32_t image_index = res.value; // m_swap_chain_images的index
 
     // record command buffer
 
     //  https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkResetCommandBuffer.html
-    m_command_buffer.reset();  // Reset a command buffer to the initial state , vs recording or pending executable state
+    m_command_buffer.reset(); // Reset a command buffer to the initial state , vs recording or pending executable state
 
     vk::CommandBufferBeginInfo cmd_buffer_begin_info;
     // cmd_buffer_begin_info.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
     // VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT: The command buffer will be rerecorded right after executing it once.
     // VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT: This is a secondary command buffer that will be entirely within a single render pass.
     // VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT: The command buffer can be resubmitted while it is also already pending execution.
-    
+
     // The pInheritanceInfo parameter is only relevant for secondary command buffers. It specifies which state to inherit from the calling primary command buffers.
     cmd_buffer_begin_info.pInheritanceInfo = nullptr;
-    m_command_buffer.begin(cmd_buffer_begin_info);  //  begin recording a command buffer
+    m_command_buffer.begin(cmd_buffer_begin_info); //  begin recording a command buffer
 
     vk::RenderPassBeginInfo render_pass_begin_info;
     render_pass_begin_info.renderPass = m_render_pass;
@@ -662,7 +662,7 @@ void VulkanPipeline::before_draw()
 
     vk::ClearValue clear_color = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
     render_pass_begin_info.clearValueCount = 1;
-    render_pass_begin_info.pClearValues = &clear_color;  // color_attachment.loadOp = vk::AttachmentLoadOp::eClear
+    render_pass_begin_info.pClearValues = &clear_color; // color_attachment.loadOp = vk::AttachmentLoadOp::eClear
 
     // VK_SUBPASS_CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed.
     // VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: The render pass commands will be executed from secondary command buffers.
@@ -691,7 +691,7 @@ void VulkanPipeline::draw()
     // instanceCount: Used for instanced rendering, use 1 if you're not doing that.
     // firstVertex: Used as an offset into the vertex buffer, defines the lowest value of gl_VertexIndex.
     // firstInstance: Used as an offset for instanced rendering, defines the lowest value of gl_InstanceIndex.
-    m_command_buffer.draw(3, 1, 0, 0); 
+    m_command_buffer.draw(3, 1, 0, 0);
 
 }
 
@@ -707,7 +707,7 @@ void VulkanPipeline::after_draw()
     // That means that theoretically the implementation can already start executing our vertex shader and such while the image is not yet available.
     // 然后好了以后把m_render_finished_semaphore signal了
     vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    vk::Semaphore wait_semaphore[] = {m_image_available_semaphore};  
+    vk::Semaphore wait_semaphore[] = {m_image_available_semaphore};
     vk::Semaphore signal_semaphore[] = {m_render_finished_semaphore};
 
     vk::SubmitInfo submit_info;
