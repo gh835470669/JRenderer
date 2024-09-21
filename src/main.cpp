@@ -1,7 +1,4 @@
 #include "app.h"
-#include "imgui.h"
-#include "backends/imgui_impl_win32.h"
-#include "backends/imgui_impl_vulkan.h"
 
 int WinMain(HINSTANCE hinst,
             HINSTANCE hprev,
@@ -10,5 +7,5 @@ int WinMain(HINSTANCE hinst,
 {
 
     jre::App app(hinst, hprev, cmdline, show);
-    return app.main_loop();
+    return app.MainLoop();
 }

@@ -5,69 +5,90 @@
 #include "shader.h"
 #include <memory>
 
-class VulkanPipeline
+namespace jre
 {
-public:
-    VulkanPipeline(HINSTANCE hinst, HWND hwnd);
-    ~VulkanPipeline();
+    class VulkanPipeline
+    {
+        // friend class VulkanPipelineDrawContext;
 
-    
-    vk::Instance instance;
-    vk::PhysicalDevice physical_device;
-    vk::Device device;
-    uint32_t m_graphics_queue_family;
-    vk::Queue m_graphics_queue;
-    
-    vk::SurfaceKHR surface;
-    uint32_t m_present_queue_family;
-    vk::Queue m_present_queue;
-    vk::SwapchainKHR m_swapchain;
-    std::vector<vk::Image> m_swap_chain_images;
-    std::vector<vk::ImageView> m_swap_chain_image_views;
-    vk::Format m_swap_chain_image_format;
-    vk::Extent2D m_swap_chain_extent;
+    public:
+        VulkanPipeline(HINSTANCE hinst, HWND hwnd);
+        ~VulkanPipeline();
 
-    std::shared_ptr<Shader> m_vertext_shader;
-    std::shared_ptr<Shader> m_fragment_shader;
+        inline vk::Instance &instance() { return m_instance; }
+        inline vk::PhysicalDevice &physical_device() { return m_physical_device; }
+        inline vk::Device &device() { return m_device; }
+        inline vk::CommandPool &command_pool() { return m_command_pool; }
+        inline vk::Queue &graphics_queue() { return m_graphics_queue; }
+        inline vk::RenderPass &render_pass() { return m_render_pass; }
 
-    vk::PipelineLayout m_pipeline_layout;
-    vk::RenderPass m_render_pass;
-    vk::Pipeline m_graphics_pipeline;
+        class VulkanPipelineDrawContext
+        {
+        public:
+            VulkanPipelineDrawContext(VulkanPipeline &pipeline);
+            ~VulkanPipelineDrawContext();
 
-    std::vector<vk::Framebuffer> m_frame_buffers;
+            VulkanPipeline &m_pipeline;
+            uint32_t image_index;
 
-    vk::CommandPool m_command_pool;
-    vk::CommandBuffer m_command_buffer;
+            vk::CommandBuffer &command_buffer() { return m_pipeline.m_command_buffer; }
+        };
+        VulkanPipelineDrawContext BeginDraw();
+        void Draw();
 
-    HINSTANCE m_win_inst;
-    HWND m_win_handle;
+    private:
+        vk::Instance m_instance;
+        vk::PhysicalDevice m_physical_device;
+        vk::Device m_device;
+        uint32_t m_graphics_queue_family;
+        vk::Queue m_graphics_queue;
 
-    void before_draw();
-    void draw();
-    void after_draw();
-private:
+        vk::SurfaceKHR surface;
+        uint32_t m_present_queue_family;
+        vk::Queue m_present_queue;
+        vk::SwapchainKHR m_swapchain;
+        std::vector<vk::Image> m_swap_chain_images;
+        std::vector<vk::ImageView> m_swap_chain_image_views;
+        vk::Format m_swap_chain_image_format;
+        vk::Extent2D m_swap_chain_extent;
 
+        std::shared_ptr<Shader> m_vertext_shader;
+        std::shared_ptr<Shader> m_fragment_shader;
 
-    vk::Semaphore m_image_available_semaphore;
-    vk::Semaphore m_render_finished_semaphore;
-    vk::Fence m_in_flight_fence;
+        vk::PipelineLayout m_pipeline_layout;
+        vk::RenderPass m_render_pass;
+        vk::Pipeline m_graphics_pipeline;
 
-    void InitVulkan();
-    void InitInstance();
-    void InitPhysicalDevice();
-    void InitDevice();
-    void InitSurface();
-    void InitQueueFamily();
-    void InitQueue();
-    void InitSwapChain();
-    void InitRenderPass();
-    void InitPipeline();
-    void InitFrameBuffers();
-    void InitCommandPool();
-    void InitCommandBuffer();
-    void InitSyncObjects();
+        std::vector<vk::Framebuffer> m_frame_buffers;
 
-    void ReInitSwapChain();
+        vk::CommandPool m_command_pool;
+        vk::CommandBuffer m_command_buffer;
 
-    void DestroySwapChain();
-};
+        HINSTANCE m_win_inst;
+        HWND m_win_handle;
+
+        vk::Semaphore m_image_available_semaphore;
+        vk::Semaphore m_render_finished_semaphore;
+        vk::Fence m_in_flight_fence;
+
+        void InitVulkan();
+        void InitInstance();
+        void InitPhysicalDevice();
+        void InitDevice();
+        void InitSurface();
+        void InitQueueFamily();
+        void InitQueue();
+        void InitSwapChain();
+        void InitRenderPass();
+        void InitPipeline();
+        void InitFrameBuffers();
+        void InitCommandPool();
+        void InitCommandBuffer();
+        void InitSyncObjects();
+
+        void ReInitSwapChain();
+
+        void DestroySwapChain();
+    };
+
+}

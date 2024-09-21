@@ -6,18 +6,12 @@ namespace jre
     {
     }
 
-    void JRenderer::main_loop()
-    {
-        this->tick();
-        this->draw();
-    }
-
-    void JRenderer::tick()
+    void JRenderer::Tick(const TickContext &context)
     {
     }
 
-    void JRenderer::draw()
+    void JRenderer::Draw(const DrawContext &context)
     {
-        this->pipeline.draw();
+        this->m_pipeline.Draw();
     }
 } // namespace jre
