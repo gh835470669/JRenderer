@@ -2,6 +2,7 @@
 
 #include "jrenderer.h"
 #include "imgui_helper/imgui_context.h"
+#include "imgui_helper/imgui_window/imwin_debug.h"
 #include "window.h"
 #include "statistics/statistics.h"
 
@@ -28,6 +29,7 @@ namespace jre
     private:
         JRenderer m_renderer;
         Statistics m_statistics;
-        imgui::ImguiContext imgui;
-        };
+        imgui::ImguiContext imgui_context;
+        imgui::ImWinDebug imwin_debug;
+    };
 }

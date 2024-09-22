@@ -13,46 +13,30 @@ namespace jre
                                     : v;
     }
 
-    VulkanPipeline::VulkanPipeline(HINSTANCE hinst, HWND hwnd)
-        : m_win_inst(hinst), m_win_handle(hwnd)
+    VulkanPipeline::VulkanPipeline()
     {
-        InitVulkan();
+        // InitVulkan();
     }
 
     VulkanPipeline::~VulkanPipeline()
     {
-        m_device.destroySemaphore(m_image_available_semaphore);
-        m_device.destroySemaphore(m_render_finished_semaphore);
-        m_device.destroyFence(m_in_flight_fence);
-        m_device.destroyShaderModule(m_vertext_shader->m_shader_module);
-        m_vertext_shader.reset();
-        m_device.destroyShaderModule(m_fragment_shader->m_shader_module);
-        m_fragment_shader.reset();
-        m_device.destroyPipeline(m_graphics_pipeline);
-        m_device.destroyPipelineLayout(m_pipeline_layout);
-        m_device.destroyRenderPass(m_render_pass);
-        m_device.destroyCommandPool(m_command_pool);
-        DestroySwapChain();
-        m_device.destroy();
-        m_instance.destroySurfaceKHR(surface);
-        m_instance.destroy();
     }
 
     void VulkanPipeline::InitVulkan()
     {
-        InitInstance();
-        InitSurface();
-        InitPhysicalDevice();
-        InitQueueFamily();
-        InitDevice();
-        InitQueue();
-        InitSwapChain();
-        InitRenderPass();
-        InitPipeline();
-        InitFrameBuffers();
-        InitCommandPool();
-        InitCommandBuffer();
-        InitSyncObjects();
+        // InitInstance();
+        // InitSurface();
+        // InitPhysicalDevice();
+        // InitQueueFamily();
+        // InitDevice();
+        // InitQueue();
+        // InitSwapChain();
+        // InitRenderPass();
+        // InitPipeline();
+        // InitFrameBuffers();
+        // InitCommandPool();
+        // InitCommandBuffer();
+        // InitSyncObjects();
     }
 
     void VulkanPipeline::InitInstance()
@@ -124,14 +108,15 @@ namespace jre
         m_device = m_physical_device.createDevice(create_info);
     }
 
-    void VulkanPipeline::InitSurface()
+    void VulkanPipeline::InitSurface(HINSTANCE hinst, HWND hwnd)
     {
         // 首先创建Windows 平台的Surface
         vk::Win32SurfaceCreateInfoKHR surface_create_info = {};
-        surface_create_info.hinstance = m_win_inst;
-        surface_create_info.hwnd = m_win_handle;
+        surface_create_info.hinstance = hinst;
+        surface_create_info.hwnd = hwnd;
         surface_create_info.sType = vk::StructureType::eWin32SurfaceCreateInfoKHR;
-        m_instance.createWin32SurfaceKHR(&surface_create_info, nullptr, &surface);
+        vk::Result res = m_instance.createWin32SurfaceKHR(&surface_create_info, nullptr, &m_surface);
+        vk::detail::resultCheck(res, "m_instance.createWin32SurfaceKHR");
     }
 
     void VulkanPipeline::InitQueueFamily()
@@ -153,73 +138,11 @@ namespace jre
         m_present_queue = m_device.getQueue(m_present_queue_family, 0);
     }
 
-    void VulkanPipeline::InitSwapChain()
+    void VulkanPipeline::InitSwapChain(vk::SwapchainCreateInfoKHR &swap_chain_create_info)
     {
         // Swapchain 和具体的操作系统，窗口系统相关的
-
-        vk::SurfaceCapabilitiesKHR surface_capabilities = m_physical_device.getSurfaceCapabilitiesKHR(surface);
-
-        uint32_t extend_width = 0;
-        uint32_t extend_height = 0;
-        // HINSTANCE hInstance = GetModuleHandle(NULL); // 获取当前应用程序实例的句柄
-        // HWND hWnd = GetDesktopWindow(); // 获取桌面窗口句柄
-        // 这就是依赖于全局变量了，Non-locality !
-        RECT rect;
-        GetWindowRect(m_win_handle, &rect);      // 获取窗口大小
-        int win_width = rect.right - rect.left;  // 计算窗口宽度
-        int win_height = rect.bottom - rect.top; // 计算窗口高度
-        debug::print("win_width: %d, win_height: %d\n", win_width, win_height);
-
-        extend_width = clamp<uint32_t>(win_width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width);
-        extend_height = clamp<uint32_t>(win_height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height);
-
-        debug::print("surface_capabilities minImageExtent: %d, %d\n", surface_capabilities.minImageExtent.width, surface_capabilities.minImageExtent.height);
-        debug::print("surface_capabilities maxImageExtent: %d, %d\n", surface_capabilities.maxImageExtent.width, surface_capabilities.maxImageExtent.height);
-        debug::print("swap_chain_extent: %d, %d\n", m_swap_chain_extent.width, m_swap_chain_extent.height);
-        // 【window minimize】最小化时值会是这样的
-        // win_width: 160, win_height: 28
-        // surface_capabilities minImageExtent: 0, 0
-        // surface_capabilities maxImageExtent: 0, 0
-        // 然后validation layer 会报提醒 extend的长宽不能为0，倒是不会崩，暂时不处理了
-
-        // https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain
-        // Frame Buffer and Swapchain
-        // a queue of images to present on the screen
-        vk::SwapchainCreateInfoKHR swap_chain_create_info;
-        swap_chain_create_info
-            .setImageSharingMode(vk::SharingMode::eExclusive)            // graphics queue and present queue 是否并行还是互斥，如果是只有一个队列就没关系了
-            .setQueueFamilyIndices({m_present_queue_family})             // 使用队列
-            .setPresentMode(vk::PresentModeKHR::eFifo)                   // 使用FIFO模式
-            .setPreTransform(vk::SurfaceTransformFlagBitsKHR::eIdentity) // 设置到屏幕前进行变换：不变
-            .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)   // 不透明
-            .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)     // 颜色附件 GPU才能写
-            .setImageArrayLayers(1)                                      // 一张图
-            .setClipped(true)                                            // Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
-            .setSurface(surface);
-
-        for (auto &format : m_physical_device.getSurfaceFormatsKHR(surface))
-        {
-            if (format.format == vk::Format::eR8G8B8A8Srgb)
-            {
-                swap_chain_create_info
-                    .setImageFormat(format.format)
-                    .setImageColorSpace(format.colorSpace);
-                m_swap_chain_image_format = format.format;
-                break;
-            }
-        }
-
-        // However, simply sticking to this minimum means that we may sometimes have to wait on the driver to complete internal operations before we can acquire another image to render to. Therefore it is recommended to request at least one more image than the minimum:
-        // 这个会让CPU等？得留意一下不同数量的图会对性能有什么影响
-        // 我的电脑最少2张，最多8张耶
-        uint32_t image_count = clamp<uint32_t>(surface_capabilities.minImageCount + 1,
-                                               surface_capabilities.minImageCount,
-                                               surface_capabilities.maxImageCount);
-        swap_chain_create_info.setMinImageCount(image_count);
-
-        m_swap_chain_extent = vk::Extent2D(extend_width, extend_height);
-        swap_chain_create_info.setImageExtent(m_swap_chain_extent); // 窗口大小
-
+        m_swap_chain_image_format = swap_chain_create_info.imageFormat;
+        m_swap_chain_extent = swap_chain_create_info.imageExtent;
         m_swapchain = m_device.createSwapchainKHR(swap_chain_create_info);
 
         // Get SwapChain Images and Create Image Views
@@ -594,13 +517,13 @@ namespace jre
         m_in_flight_fence = m_device.createFence(fence_create_info);
     }
 
-    void VulkanPipeline::ReInitSwapChain()
+    void VulkanPipeline::ReInitSwapChain(vk::SwapchainCreateInfoKHR &swap_chain_create_info)
     {
         // 等待这个逻辑设备host的所有队列的的任务完成
         // 相当于所有队列调用vkQueueWaitIdle
         m_device.waitIdle(); //    https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkDeviceWaitIdle.html
         DestroySwapChain();
-        InitSwapChain();
+        InitSwapChain(swap_chain_create_info);
         InitFrameBuffers();
 
         // 还要一种方法不需要等待丢掉所有的绘制命令然后再重新创建
@@ -694,7 +617,7 @@ namespace jre
         pipeline.m_command_buffer.beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
     }
 
-    VulkanPipeline::VulkanPipelineDrawContext::~VulkanPipelineDrawContext()
+    VulkanPipeline::VulkanPipelineDrawContext::~VulkanPipelineDrawContext() noexcept(false)
     {
         m_pipeline.m_command_buffer.endRenderPass();
 
@@ -726,23 +649,7 @@ namespace jre
         present_info.pWaitSemaphores = signal_semaphore;
         present_info.swapchainCount = 1;
         present_info.pSwapchains = &m_pipeline.m_swapchain;
-        uint32_t image_index = 0;
         present_info.pImageIndices = &image_index;
-        try
-        {
-            m_pipeline.m_present_queue.presentKHR(present_info);
-        }
-        catch (vk::OutOfDateKHRError)
-        {
-            // 当窗口的大小变化的时候，这个异常会爆出来
-            // C接口的话是判断presentKHR的返回值，https://github.com/KhronosGroup/Vulkan-Hpp/issues/274 这里会说，我自己创造性的用捕捉异常的方式解决这个问题，看来我C++理解的还是不错><
-            // 处理参考代码https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation#page_Recreating-the-swap-chain
-            // 这个重新创建需要在presentKHR之后，为的是保证m_render_finished_semaphore信号量被signal了
-            // 如果需要显式的改变分辨率，就用触发变量 https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation#page_Handling-resizes-explicitly
-            m_pipeline.ReInitSwapChain();
-        }
-        // present error
-        // VK_ERROR_OUT_OF_DATE_KHR: The swap chain has become incompatible with the surface and can no longer be used for rendering. Usually happens after a 【window resize】.
-        // VK_SUBOPTIMAL_KHR: The swap chain can still be used to successfully present to the surface, but the surface properties are no longer matched exactly. 这个还没试过，如果这个出现也是ReInitSwapChain
+        m_pipeline.m_present_queue.presentKHR(present_info);
     }
 }

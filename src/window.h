@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <list>
+#include <tuple>
 
 namespace jre
 {
@@ -34,6 +35,8 @@ namespace jre
 
         HINSTANCE hinstance() { return m_hinst; };
         HWND hwnd() { return m_hwnd; };
+        using WinSize = std::tuple<int, int>;
+        WinSize size();
 
         std::list<std::reference_wrapper<IWindowMessageHandler>> message_handlers;
     };

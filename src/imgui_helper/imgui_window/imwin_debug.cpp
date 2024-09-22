@@ -29,6 +29,11 @@ namespace jre
 
             ImGui::Text("fps: %lld", m_statistics.fps);
             ImGui::Text("%f ms per frame", m_statistics.ms_per_frame);
+            RenderSetting setting = m_renderer.render_setting();
+            if (ImGui::Checkbox("vsync", &setting.vsync))
+            {
+                m_renderer.GetRebuilder().setVsync(setting.vsync);
+            }
         }
     }
 }

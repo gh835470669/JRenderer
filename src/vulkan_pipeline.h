@@ -7,26 +7,36 @@
 
 namespace jre
 {
+
     class VulkanPipeline
     {
-        // friend class VulkanPipelineDrawContext;
+        friend class VulkanPipelineBuilder;
 
     public:
-        VulkanPipeline(HINSTANCE hinst, HWND hwnd);
+        VulkanPipeline();
         ~VulkanPipeline();
 
-        inline vk::Instance &instance() { return m_instance; }
-        inline vk::PhysicalDevice &physical_device() { return m_physical_device; }
-        inline vk::Device &device() { return m_device; }
-        inline vk::CommandPool &command_pool() { return m_command_pool; }
-        inline vk::Queue &graphics_queue() { return m_graphics_queue; }
-        inline vk::RenderPass &render_pass() { return m_render_pass; }
+        inline vk::Instance instance() { return m_instance; }
+        inline vk::PhysicalDevice physical_device() { return m_physical_device; }
+        inline vk::Device device() { return m_device; }
+        inline const uint32_t &graphics_queue_family() { return m_graphics_queue_family; }
+        inline vk::Queue graphics_queue() { return m_graphics_queue; }
+        inline vk::SurfaceKHR surface() { return m_surface; }
+        inline const uint32_t &present_queue_family() { return m_present_queue_family; }
+        inline vk::Queue present_queue() { return m_present_queue; }
+        inline vk::SwapchainKHR swap_chain() { return m_swapchain; }
+        inline vk::Extent2D swap_chain_extent() { return m_swap_chain_extent; }
+        inline vk::CommandPool command_pool() { return m_command_pool; }
+        inline vk::CommandBuffer command_buffer() { return m_command_buffer; }
+        inline vk::RenderPass render_pass() { return m_render_pass; }
+        inline const std::vector<vk::Image> &swap_chain_images() { return m_swap_chain_images; }
 
         class VulkanPipelineDrawContext
         {
         public:
             VulkanPipelineDrawContext(VulkanPipeline &pipeline);
-            ~VulkanPipelineDrawContext();
+            // noexcept(false) 是为了 外面能够catch vk::OutOfDateKHRError &e。默认是true，如果此时抛出异常就会立马abort
+            ~VulkanPipelineDrawContext() noexcept(false);
 
             VulkanPipeline &m_pipeline;
             uint32_t image_index;
@@ -36,6 +46,8 @@ namespace jre
         VulkanPipelineDrawContext BeginDraw();
         void Draw();
 
+        void ReInitSwapChain(vk::SwapchainCreateInfoKHR &swap_chain_create_info);
+
     private:
         vk::Instance m_instance;
         vk::PhysicalDevice m_physical_device;
@@ -43,7 +55,7 @@ namespace jre
         uint32_t m_graphics_queue_family;
         vk::Queue m_graphics_queue;
 
-        vk::SurfaceKHR surface;
+        vk::SurfaceKHR m_surface;
         uint32_t m_present_queue_family;
         vk::Queue m_present_queue;
         vk::SwapchainKHR m_swapchain;
@@ -64,9 +76,6 @@ namespace jre
         vk::CommandPool m_command_pool;
         vk::CommandBuffer m_command_buffer;
 
-        HINSTANCE m_win_inst;
-        HWND m_win_handle;
-
         vk::Semaphore m_image_available_semaphore;
         vk::Semaphore m_render_finished_semaphore;
         vk::Fence m_in_flight_fence;
@@ -75,18 +84,16 @@ namespace jre
         void InitInstance();
         void InitPhysicalDevice();
         void InitDevice();
-        void InitSurface();
+        void InitSurface(HINSTANCE hinst, HWND hwnd);
         void InitQueueFamily();
         void InitQueue();
-        void InitSwapChain();
+        void InitSwapChain(vk::SwapchainCreateInfoKHR &swap_chain_create_info);
         void InitRenderPass();
         void InitPipeline();
         void InitFrameBuffers();
         void InitCommandPool();
         void InitCommandBuffer();
         void InitSyncObjects();
-
-        void ReInitSwapChain();
 
         void DestroySwapChain();
     };

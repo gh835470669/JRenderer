@@ -141,4 +141,11 @@ namespace jre
         }
         return 0;
     }
+
+    Window::WinSize Window::size()
+    {
+        RECT rect;
+        GetWindowRect(m_hwnd, &rect);
+        return std::make_tuple(rect.right - rect.left, rect.bottom - rect.top);
+    }
 }
