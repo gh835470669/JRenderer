@@ -1,35 +1,30 @@
 #pragma once
 
 #include "jrenderer.h"
-#include "imgui_helper/imgui_context.h"
-#include "imgui_helper/imgui_window/imwin_debug.h"
-#include "window.h"
-#include "statistics/statistics.h"
+// #include "imgui_helper/imgui_context.h"
+#include "imgui_helper/imwin_debug.h"
+// #include "window.h"
+#include "app_statistic.h"
 
-namespace jre
+class App
 {
-    class App
-    {
-    private:
-        /* data */
+private:
+    /* data */
 
-    public:
-        App(HINSTANCE hinst,
-            HINSTANCE hprev,
-            LPSTR cmdline,
-            int show);
-        ~App();
+public:
+    App(HINSTANCE hinst,
+        HINSTANCE hprev,
+        LPSTR cmdline,
+        int show);
+    ~App();
 
-        Window window;
+    jre::Window window;
 
-        int MainLoop();
-        void Tick();
-        void Draw();
+    int MainLoop();
 
-    private:
-        JRenderer m_renderer;
-        Statistics m_statistics;
-        imgui::ImguiContext imgui_context;
-        imgui::ImWinDebug imwin_debug;
-    };
-}
+private:
+    jre::JRenderer m_renderer;
+    Statistics m_statistics;
+    // jre::imgui::ImguiContext imgui_context;
+    ImWinDebug imwin_debug;
+};

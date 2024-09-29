@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.11)
 
 project(JRenderer)
 
@@ -11,8 +11,8 @@ list(APPEND IMGUI_SOURCES "imgui/backends/imgui_impl_vulkan.cpp")
 list(APPEND IMGUI_SOURCES "imgui/misc/cpp/imgui_stdlib.cpp")
 file(GLOB IMGUI_HELPER_SOURCES "src/imgui_helper/*.cpp")
 file(GLOB IMGUI_HEADER_HELPER_SOURCES "src/imgui_helper/*.h")
-file(GLOB_RECURSE STAT_SOURCES "src/statistics/*.cpp")
-file(GLOB_RECURSE STAT_H_SOURCES "src/statistics/*.h")
+file(GLOB_RECURSE STAT_SOURCES "src/helper/*.cpp")
+file(GLOB_RECURSE STAT_H_SOURCES "src/helper/*.h")
 list(APPEND SOURCES ${IMGUI_SOURCES})
 list(APPEND SOURCES ${IMGUI_HEADER_HELPER_SOURCES})
 list(APPEND SOURCES ${IMGUI_HELPER_SOURCES})
@@ -21,19 +21,39 @@ list(APPEND SOURCES ${H_SOURCES})
 list(APPEND SOURCES ${STAT_SOURCES})
 list(APPEND SOURCES ${STAT_H_SOURCES})
 
+# tracy
+list(APPEND SOURCES "tracy/public/TracyClient.cpp")
+
 include_directories("third_party/include")
 include_directories("imgui")
+include_directories("tracy/public")
 
+# fmt 库
+include(FetchContent)
+
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+FetchContent_MakeAvailable(fmt)
+
+# vulkan
+add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
 set(LIBS "vulkan-1.lib")
 link_directories("third_party/lib")
 # link_directories("third_party/bin")
 
-add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
-
 # set(CMAKE_CXX_STANDARD 14)
 
+add_subdirectory(src/jrenderer)
+
 add_executable(JRenderer WIN32 ${SOURCES})
-target_link_libraries(JRenderer ${LIBS})
+target_include_directories(JRenderer PUBLIC
+                          "${PROJECT_SOURCE_DIR}/src/jrenderer/include"
+                          )
+target_link_libraries(JRenderer PUBLIC ${LIBS} JRendererLib fmt::fmt)
+target_compile_definitions(JRenderer PUBLIC TRACY_ENABLE TRACY_HAS_CALLSTACK TRACY_CALLSTACK=20)
+
 
 if (WIN32)
     # 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 [E:\JRenderer\build\JRenderer.vcxproj]
