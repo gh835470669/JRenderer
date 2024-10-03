@@ -28,14 +28,22 @@ include_directories("third_party/include")
 include_directories("imgui")
 include_directories("tracy/public")
 
-# fmt 库
-include(FetchContent)
 
+include(FetchContent)
+# fmt 库
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt
   GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
 FetchContent_MakeAvailable(fmt)
+
+# glm库
+FetchContent_Declare(
+	glm
+	GIT_REPOSITORY	https://github.com/g-truc/glm.git
+	GIT_TAG 	bf71a834948186f4097caa076cd2663c69a10e1e #refs/tags/1.0.1
+)
+FetchContent_MakeAvailable(glm)
 
 # vulkan
 add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)

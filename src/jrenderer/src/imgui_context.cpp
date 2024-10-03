@@ -36,18 +36,20 @@ namespace jre
             auto size = window.size();
             io.DisplaySize = ImVec2(static_cast<float>(std::get<0>(size)), static_cast<float>(std::get<1>(size)));
             io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-#if defined(_WIN32)
-            // If we directly work with os specific key codes, we need to map special key types like tab
-            io.KeyMap[ImGuiKey_Tab] = VK_TAB;
-            io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
-            io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
-            io.KeyMap[ImGuiKey_UpArrow] = VK_UP;
-            io.KeyMap[ImGuiKey_DownArrow] = VK_DOWN;
-            io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
-            io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
-            io.KeyMap[ImGuiKey_Space] = VK_SPACE;
-            io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
-#endif
+
+            // io.KeyMap 是传统的绑定法，不能与addEventKey (ImGui_ImplWin32_WndProcHandler) 一起用
+            // #if defined(_WIN32)
+            //             // If we directly work with os specific key codes, we need to map special key types like tab
+            //             io.KeyMap[ImGuiKey_Tab] = VK_TAB;
+            //             io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
+            //             io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
+            //             io.KeyMap[ImGuiKey_UpArrow] = VK_UP;
+            //             io.KeyMap[ImGuiKey_DownArrow] = VK_DOWN;
+            //             io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
+            //             io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
+            //             io.KeyMap[ImGuiKey_Space] = VK_SPACE;
+            //             io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
+            // #endif
             VkDescriptorPool g_DescriptorPool = VK_NULL_HANDLE;
             VkDescriptorPoolSize pool_sizes[] =
                 {
@@ -109,6 +111,7 @@ namespace jre
             {
                 ImGui_ImplVulkan_RenderDrawData(draw_data, context.command_buffer);
             }
+            m_has_new_frame = false;
         }
 
         LRESULT ImguiContext::WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)

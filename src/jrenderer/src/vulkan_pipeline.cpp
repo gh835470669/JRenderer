@@ -1,5 +1,5 @@
 #include "details/vulkan_pipeline.h"
-// #include "debug/debug.h"
+#include "details/vulkan_vertex.h"
 
 #include <iostream>
 #include <algorithm>
@@ -18,39 +18,18 @@ namespace jre
     {
     }
 
-    VulkanPipeline::VulkanPipeline(VulkanPipeline &&other)
-        : m_instance(std::move(other.m_instance)),
-          m_physical_device(std::move(other.m_physical_device)),
-          m_device(std::move(other.m_device)),
-          m_graphics_queue_family(std::move(other.m_graphics_queue_family)),
-          m_graphics_queue(std::move(other.m_graphics_queue)),
-          m_surface(std::move(other.m_surface)),
-          m_present_queue_family(std::move(other.m_present_queue_family)),
-          m_present_queue(std::move(other.m_present_queue)),
-          m_swapchain(std::move(other.m_swapchain)),
-          m_swap_chain_extent(std::move(other.m_swap_chain_extent)),
-          m_swap_chain_images(std::move(other.m_swap_chain_images)),
-          m_command_pool(std::move(other.m_command_pool)),
-          m_command_buffer(std::move(other.m_command_buffer)),
-          m_render_pass(std::move(other.m_render_pass)),
-          m_vertext_shader(std::move(other.m_vertext_shader)),
-          m_fragment_shader(std::move(other.m_fragment_shader)),
-          m_pipeline_layout(std::move(other.m_pipeline_layout)),
-          m_graphics_pipeline(std::move(other.m_graphics_pipeline)),
-          m_frame_buffers(std::move(other.m_frame_buffers)),
-          m_image_available_semaphore(std::move(other.m_image_available_semaphore)),
-          m_render_finished_semaphore(std::move(other.m_render_finished_semaphore)),
-          m_in_flight_fence(std::move(other.m_in_flight_fence)),
-          m_swap_chain_image_format(std::move(other.m_swap_chain_image_format)),
-          m_swap_chain_image_views(std::move(other.m_swap_chain_image_views))
-
-    {
-    }
-
     VulkanPipeline::~VulkanPipeline()
     {
         if (m_device)
         {
+            for (auto &buffer : m_buffers)
+            {
+                m_device.destroyBuffer(buffer);
+            }
+            for (auto &memory : m_device_memories)
+            {
+                m_device.freeMemory(memory);
+            }
             m_device.destroySemaphore(m_image_available_semaphore);
             m_device.destroySemaphore(m_render_finished_semaphore);
             m_device.destroyFence(m_in_flight_fence);
@@ -136,7 +115,7 @@ namespace jre
         // Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
         vk::PhysicalDeviceProperties device_properties = m_physical_device.getProperties();
         vk::PhysicalDeviceFeatures device_features = m_physical_device.getFeatures();
-        vk::PhysicalDeviceMemoryProperties device_memory_properties = m_physical_device.getMemoryProperties();
+        m_physical_device_memory_properties = m_physical_device.getMemoryProperties();
     }
 
     void VulkanPipeline::InitDevice()
@@ -340,11 +319,14 @@ namespace jre
         // The VkPipelineVertexInputStateCreateInfo structure describes the format of the vertex data that will be passed to the vertex shader. It describes this in roughly two ways:
         // Bindings: spacing between data and whether the data is per-vertex or per-instance (see instancing)
         // Attribute descriptions: type of the attributes passed to the vertex shader, which binding to load them from and at which offset
+        auto binding_descriptions = Vertex::get_binding_descriptions();
+        auto attribute_descriptions = Vertex::get_attribute_descriptions();
+
         vk::PipelineVertexInputStateCreateInfo vertex_input_info;
-        vertex_input_info.vertexBindingDescriptionCount = 0;
-        vertex_input_info.pVertexBindingDescriptions = nullptr; // Optional
-        vertex_input_info.vertexAttributeDescriptionCount = 0;
-        vertex_input_info.pVertexAttributeDescriptions = nullptr; // Optional
+        vertex_input_info.vertexBindingDescriptionCount = static_cast<uint32_t>(binding_descriptions.size());
+        vertex_input_info.pVertexBindingDescriptions = binding_descriptions.data(); // Optional
+        vertex_input_info.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute_descriptions.size());
+        vertex_input_info.pVertexAttributeDescriptions = attribute_descriptions.data(); // Optional
 
         vk::PipelineInputAssemblyStateCreateInfo input_assembly;
         // VK_PRIMITIVE_TOPOLOGY_POINT_LIST: points from vertices
@@ -581,6 +563,77 @@ namespace jre
         // 这样即使正在绘制图片，也可以重新创建swapchain，牛逼
     }
 
+    VulkanBufferHandle VulkanPipeline::create_buffer(VulkanBufferCreateInfo &buffer_create_info)
+    {
+        vk::BufferCreateInfo buffer_info{};
+        buffer_info.size = buffer_create_info.size;
+        buffer_info.usage = buffer_create_info.usage;
+        buffer_info.sharingMode = vk::SharingMode::eExclusive;
+        m_buffers.push_back(m_device.createBuffer(buffer_info));
+        return VulkanBufferHandle(*this, m_buffers.back());
+    }
+
+    VulkanBufferHandle VulkanPipeline::create_buffer_with_memory(VulkanBufferCreateInfo &buffer_create_info, VulkanMemoryCreateInfo &memory_create_info)
+    {
+        VulkanBufferHandle buffer = create_buffer(buffer_create_info);
+        allocate_memory(buffer, memory_create_info);
+        return buffer;
+    }
+
+    VulkanMemoryHandle VulkanPipeline::allocate_memory(VulkanBufferHandle &buffer, VulkanMemoryCreateInfo &memory_create_info)
+    {
+        // 分配内存
+        vk::MemoryRequirements mem_requirements = m_device.getBufferMemoryRequirements(buffer.m_buffer);
+        vk::MemoryAllocateInfo alloc_info{};
+        alloc_info.allocationSize = mem_requirements.size;
+        alloc_info.memoryTypeIndex = find_memory_type(mem_requirements.memoryTypeBits, memory_create_info.properties);
+        m_device_memories.push_back(m_device.allocateMemory(alloc_info));
+        buffer.m_memory = VulkanMemoryHandle(m_device_memories.back());
+        m_device.bindBufferMemory(buffer.m_buffer, buffer.m_memory.m_memory, 0); // Since this memory is allocated specifically for this the vertex buffer, the offset is simply 0. If the offset is non-zero, then it is required to be divisible by memRequirements.alignment.
+        return buffer.m_memory;
+    }
+
+    void VulkanPipeline::destroy_buffer(VulkanBufferHandle &buffer)
+    {
+        if (buffer.m_buffer != VK_NULL_HANDLE)
+        {
+            m_buffers.erase(std::remove(m_buffers.begin(), m_buffers.end(), buffer.m_buffer), m_buffers.end());
+            m_device.destroyBuffer(buffer.m_buffer);
+        }
+        buffer.m_buffer = VK_NULL_HANDLE;
+    }
+
+    void VulkanPipeline::destroy_buffer_with_memory(VulkanBufferHandle &buffer)
+    {
+        free_memory(buffer.m_memory);
+        destroy_buffer(buffer);
+    }
+
+    void VulkanPipeline::free_memory(VulkanMemoryHandle &memory)
+    {
+        if (memory.m_memory != VK_NULL_HANDLE)
+        {
+            m_device_memories.erase(std::remove(m_device_memories.begin(), m_device_memories.end(), memory.m_memory), m_device_memories.end());
+            m_device.freeMemory(memory.m_memory);
+        }
+        memory.m_memory = VK_NULL_HANDLE;
+    }
+
+    void VulkanPipeline::map_memory(VulkanMemoryHandle &memory, const void *data, size_t size)
+    {
+        void *mapped_data = m_device.mapMemory(memory.m_memory, 0, size);
+        memcpy(mapped_data, data, size);
+        m_device.unmapMemory(memory.m_memory);
+
+        // Unfortunately the driver may not immediately copy the data into the buffer memory, for example because of 【caching】
+        // It is also possible that writes to the buffer are not visible in the mapped memory yet. There are two ways to deal with that problem:
+
+        // 1. Use a memory heap that is host coherent, indicated with VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+        // 2. Call vkFlushMappedMemoryRanges after writing to the mapped memory, and call vkInvalidateMappedMemoryRanges before reading from the mapped memory
+
+        //  it doesn't mean that they are actually visible on the GPU yet
+        // The transfer of data to the GPU is an operation that happens in the background and the specification simply tells us that it is guaranteed to be complete as of the next call to vkQueueSubmit.
+    }
     void VulkanPipeline::DestroySwapChain()
     {
         for (auto &frame_buffer : m_frame_buffers)
@@ -596,34 +649,20 @@ namespace jre
         m_device.destroySwapchainKHR(m_swapchain);
     }
 
+    uint32_t VulkanPipeline::find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties)
+    {
+        for (uint32_t i = 0; i < m_physical_device_memory_properties.memoryTypeCount; ++i)
+        {
+            if ((type_filter & (1 << i)) && (m_physical_device_memory_properties.memoryTypes[i].propertyFlags & properties) == properties)
+            {
+                return i;
+            }
+        }
+        throw std::runtime_error("failed to find suitable memory type!");
+    }
     VulkanPipeline::VulkanPipelineDrawContext VulkanPipeline::BeginDraw()
     {
         return VulkanPipeline::VulkanPipelineDrawContext(*this);
-    }
-
-    void VulkanPipeline::Draw()
-    {
-        m_command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline);
-
-        vk::Viewport viewport;
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = static_cast<float>(m_swap_chain_extent.width);
-        viewport.height = static_cast<float>(m_swap_chain_extent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        m_command_buffer.setViewport(0, viewport);
-
-        vk::Rect2D scissor;
-        scissor.offset = vk::Offset2D{0, 0};
-        scissor.extent = m_swap_chain_extent;
-        m_command_buffer.setScissor(0, scissor);
-
-        // vertexCount: Even though we don't have a vertex buffer, we technically still have 3 vertices to draw.
-        // instanceCount: Used for instanced rendering, use 1 if you're not doing that.
-        // firstVertex: Used as an offset into the vertex buffer, defines the lowest value of gl_VertexIndex.
-        // firstInstance: Used as an offset for instanced rendering, defines the lowest value of gl_InstanceIndex.
-        m_command_buffer.draw(3, 1, 0, 0);
     }
 
     VulkanPipeline::VulkanPipelineDrawContext::VulkanPipelineDrawContext(VulkanPipeline &pipeline) : m_pipeline(pipeline)

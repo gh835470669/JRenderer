@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vulkan/vulkan.hpp"
-
+#include "vulkan_buffer.h"
 #include "shader.h"
 #include <memory>
 
@@ -15,7 +15,6 @@ namespace jre
     public:
         VulkanPipeline();
         VulkanPipeline(const VulkanPipeline &) = delete;
-        VulkanPipeline(VulkanPipeline &&other);
         ~VulkanPipeline();
 
         inline vk::Instance instance() { return m_instance; }
@@ -31,8 +30,9 @@ namespace jre
         inline const std::vector<vk::Image> &swap_chain_images() { return m_swap_chain_images; }
         inline vk::CommandPool command_pool() { return m_command_pool; }
         inline vk::CommandBuffer command_buffer() { return m_command_buffer; }
-
         inline vk::RenderPass render_pass() { return m_render_pass; }
+        inline vk::PipelineLayout pipeline_layout() { return m_pipeline_layout; }
+        inline vk::Pipeline graphics_pipeline() { return m_graphics_pipeline; }
 
         class VulkanPipelineDrawContext
         {
@@ -47,9 +47,16 @@ namespace jre
             vk::CommandBuffer &command_buffer() { return m_pipeline.m_command_buffer; }
         };
         VulkanPipelineDrawContext BeginDraw();
-        void Draw();
 
         void ReInitSwapChain(vk::SwapchainCreateInfoKHR &swap_chain_create_info);
+
+        VulkanBufferHandle create_buffer(VulkanBufferCreateInfo &buffer_create_info);
+        void destroy_buffer(VulkanBufferHandle &buffer);
+        VulkanBufferHandle create_buffer_with_memory(VulkanBufferCreateInfo &buffer_create_info, VulkanMemoryCreateInfo &memory_create_info);
+        void destroy_buffer_with_memory(VulkanBufferHandle &buffer);
+        VulkanMemoryHandle allocate_memory(VulkanBufferHandle &buffer, VulkanMemoryCreateInfo &memory_create_info);
+        void free_memory(VulkanMemoryHandle &memory);
+        void map_memory(VulkanMemoryHandle &memory, const void *data, size_t size);
 
     private:
         vk::Instance m_instance;
@@ -83,6 +90,10 @@ namespace jre
         vk::Semaphore m_render_finished_semaphore;
         vk::Fence m_in_flight_fence;
 
+        std::vector<vk::Buffer> m_buffers;
+        vk::PhysicalDeviceMemoryProperties m_physical_device_memory_properties;
+        std::vector<vk::DeviceMemory> m_device_memories;
+
         void InitVulkan();
         void InitInstance();
         void InitPhysicalDevice();
@@ -99,6 +110,8 @@ namespace jre
         void InitSyncObjects();
 
         void DestroySwapChain();
+
+        uint32_t find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties);
     };
 
 }
