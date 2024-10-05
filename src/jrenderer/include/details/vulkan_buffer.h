@@ -42,6 +42,7 @@ namespace jre
         explicit operator vk::Buffer() const { return m_buffer; }
         VulkanMemoryHandle memory() const { return m_memory; }
         vk::Buffer buffer() const { return m_buffer; }
+        void map_memory(const void *data, size_t size);
         template <typename T>
         void map_memory(const std::vector<T> &data)
         {

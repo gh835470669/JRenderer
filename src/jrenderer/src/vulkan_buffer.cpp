@@ -12,4 +12,9 @@ namespace jre
     {
         m_pipeline.destroy_buffer_with_memory(*this);
     }
+
+    void VulkanBufferHandle::map_memory(const void *data, size_t size)
+    {
+        m_pipeline.map_memory(m_memory, data, size);
+    }
 }

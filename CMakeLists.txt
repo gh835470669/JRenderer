@@ -45,6 +45,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+# stb
+include_directories("stb")
+
 # vulkan
 add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
 set(LIBS "vulkan-1.lib")

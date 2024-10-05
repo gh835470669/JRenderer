@@ -68,6 +68,10 @@ namespace jre
         void map_memory(VulkanMemoryHandle &memory, const void *data, size_t size);
         void copy_buffer(const VulkanBufferHandle &src_buffer, const VulkanBufferHandle &dst_buffer, size_t size);
 
+        void transition_image_layout(vk::Image image, vk::Format format, vk::ImageLayout old_layout, vk::ImageLayout new_layout);
+
+        void copy_buffer_to_image(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
+
         void draw(const DrawContext &draw_context);
 
     private:
@@ -104,6 +108,7 @@ namespace jre
 
         std::vector<vk::Buffer> m_buffers;
         vk::PhysicalDeviceMemoryProperties m_physical_device_memory_properties;
+        vk::PhysicalDeviceProperties m_physical_device_properties;
         std::vector<vk::DeviceMemory> m_device_memories;
 
         vk::DescriptorSetLayout m_descriptor_set_layout;
@@ -111,16 +116,32 @@ namespace jre
         vk::DescriptorSet m_descriptor_set;
 
         // 坐标系https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules#page_Vertex-shader
-        const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                              {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                              {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                                              {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+        const std::vector<Vertex> vertices = {
+            {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+            {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+            {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+
+            {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+            {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+            {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}};
         std::shared_ptr<VulkanBufferHandle> m_vertex_buffer;
         const std::vector<uint16_t> indices = {
-            0, 1, 2, 2, 3, 0};
+            0, 1, 2, 2, 3, 0,
+            4, 5, 6, 6, 7, 4};
         std::shared_ptr<VulkanBufferHandle> m_index_buffer;
         std::shared_ptr<VulkanBufferHandle> m_uniform_buffer;
         void *m_uniform_buffer_mapped;
+
+        vk::Image m_texture_image;
+        vk::DeviceMemory m_texture_image_memory;
+        vk::ImageView m_texture_image_view;
+        vk::Sampler m_texture_sampler;
+
+        vk::Image m_depth_image;
+        vk::DeviceMemory m_depth_image_memory;
+        vk::ImageView m_depth_image_view;
 
         void InitVulkan();
         void InitInstance();
@@ -140,6 +161,9 @@ namespace jre
         void InitDescriptorSet();
         void InitDescriptorSetLayout();
         void InitBuffers();
+        void InitTexture();
+        void InitDepthResources();
+        vk::Format VulkanPipeline::find_depth_format();
 
         void UpdateUniformBuffer();
 
