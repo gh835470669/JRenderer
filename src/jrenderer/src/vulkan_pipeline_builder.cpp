@@ -22,11 +22,17 @@ namespace jre
         vk::SwapchainCreateInfoKHR swap_chain_create_info = swap_chain_builder.Build(*pipeline);
         pipeline->InitSwapChain(swap_chain_create_info);
         pipeline->InitRenderPass();
-        pipeline->InitPipeline();
+
         pipeline->InitFrameBuffers();
         pipeline->InitCommandPool();
         pipeline->InitCommandBuffer();
         pipeline->InitSyncObjects();
+        pipeline->InitBuffers();
+        pipeline->InitDescriptorPool();
+        pipeline->InitDescriptorSetLayout();
+        pipeline->InitDescriptorSet();
+        pipeline->InitPipeline();
+
         return std::move(pipeline);
     }
 

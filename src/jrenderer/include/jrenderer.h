@@ -8,6 +8,7 @@
 
 namespace jre
 {
+
     class RenderSetting
     {
     public:
@@ -38,18 +39,7 @@ namespace jre
         std::unique_ptr<VulkanPipeline> m_pipeline;
         imgui::ImguiContext m_imgui_context;
 
-        // 坐标系https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules#page_Vertex-shader
-        const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                              {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                              {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                                              {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
-        std::shared_ptr<VulkanBufferHandle> m_vertex_buffer;
-        const std::vector<uint16_t> indices = {
-            0, 1, 2, 2, 3, 0};
-        std::shared_ptr<VulkanBufferHandle> m_index_buffer;
-
         void draw(const DrawContext &draw_context) override;
-        void copy_buffer(const VulkanBufferHandle &src_buffer, const VulkanBufferHandle &dst_buffer, size_t size);
 
     public:
         JRenderer(Window &window);
@@ -65,4 +55,5 @@ namespace jre
 
         void ReInitSwapChain();
     };
+
 }

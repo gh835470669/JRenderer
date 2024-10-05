@@ -4,6 +4,8 @@
 #include <iostream>
 #include <algorithm>
 #include <array>
+#include <chrono>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace jre
 {
@@ -22,6 +24,7 @@ namespace jre
     {
         if (m_device)
         {
+            m_device.destroyDescriptorSetLayout(m_descriptor_set_layout);
             for (auto &buffer : m_buffers)
             {
                 m_device.destroyBuffer(buffer);
@@ -367,7 +370,7 @@ namespace jre
         // The lineWidth member is straightforward, it describes the thickness of lines in terms of number of fragments. The maximum line width that is supported depends on the hardware and any line thicker than 1.0f requires you to enable the wideLines GPU feature.
         rasterizer.lineWidth = 1.0f;
         rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-        rasterizer.frontFace = vk::FrontFace::eClockwise;
+        rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
 
         // The rasterizer can alter the depth values by adding a constant value or biasing them based on a fragment's slope. This is sometimes used for shadow mapping,
         rasterizer.depthBiasEnable = VK_FALSE;
@@ -435,10 +438,10 @@ namespace jre
         color_blending.blendConstants[3] = 0.0f; // Optional
 
         vk::PipelineLayoutCreateInfo pipeline_layout_info{};
-        pipeline_layout_info.setLayoutCount = 0;            // Optional
-        pipeline_layout_info.pSetLayouts = nullptr;         // Optional
-        pipeline_layout_info.pushConstantRangeCount = 0;    // Optional
-        pipeline_layout_info.pPushConstantRanges = nullptr; // Optional
+        pipeline_layout_info.setLayoutCount = 1;                     // Optional
+        pipeline_layout_info.pSetLayouts = &m_descriptor_set_layout; // Optional
+        pipeline_layout_info.pushConstantRangeCount = 0;             // Optional
+        pipeline_layout_info.pPushConstantRanges = nullptr;          // Optional
         m_pipeline_layout = m_device.createPipelineLayout(pipeline_layout_info);
 
         vk::GraphicsPipelineCreateInfo pipeline_info{};
@@ -549,6 +552,98 @@ namespace jre
         m_in_flight_fence = m_device.createFence(fence_create_info);
     }
 
+    void VulkanPipeline::InitDescriptorPool()
+    {
+        vk::DescriptorPoolSize pool_size;
+        pool_size.type = vk::DescriptorType::eUniformBuffer;
+        pool_size.descriptorCount = 1;
+
+        vk::DescriptorPoolCreateInfo pool_info;
+        pool_info.poolSizeCount = 1;
+        pool_info.pPoolSizes = &pool_size;
+        pool_info.maxSets = 1;
+        m_descriptor_pool = m_device.createDescriptorPool(pool_info);
+    }
+
+    void VulkanPipeline::InitDescriptorSet()
+    {
+        vk::DescriptorSetAllocateInfo alloc_info;
+        alloc_info.descriptorPool = m_descriptor_pool;
+        alloc_info.descriptorSetCount = 1;
+        alloc_info.pSetLayouts = &m_descriptor_set_layout;
+        m_descriptor_set = m_device.allocateDescriptorSets(alloc_info)[0];
+
+        vk::DescriptorBufferInfo buffer_info;
+        buffer_info.buffer = m_uniform_buffer->m_buffer;
+        buffer_info.offset = 0;
+        buffer_info.range = sizeof(UniformBufferObject);
+
+        vk::WriteDescriptorSet descriptor_write;
+        descriptor_write.dstSet = m_descriptor_set;
+        descriptor_write.dstBinding = 0;
+        descriptor_write.descriptorCount = 1;
+        descriptor_write.descriptorType = vk::DescriptorType::eUniformBuffer;
+        descriptor_write.pBufferInfo = &buffer_info;
+        descriptor_write.pImageInfo = nullptr;
+        descriptor_write.pTexelBufferView = nullptr;
+
+        m_device.updateDescriptorSets(descriptor_write, nullptr);
+    }
+
+    void VulkanPipeline::InitDescriptorSetLayout()
+    {
+        vk::DescriptorSetLayoutBinding uboLayoutBinding{};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+
+        vk::DescriptorSetLayoutCreateInfo descriptor_set_layout_create_info;
+        descriptor_set_layout_create_info.bindingCount = 1;
+        descriptor_set_layout_create_info.pBindings = &uboLayoutBinding;
+
+        m_descriptor_set_layout = m_device.createDescriptorSetLayout(descriptor_set_layout_create_info);
+    }
+
+    void VulkanPipeline::InitBuffers()
+    {
+        VulkanBufferCreateInfo create_info;
+        create_info.size = sizeof(vertices[0]) * vertices.size();
+        VulkanMemoryCreateInfo memory_create_info;
+
+        create_info.usage = vk::BufferUsageFlagBits::eTransferSrc;
+        memory_create_info.properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+        VulkanBufferHandle vertex_staging_buffer = create_buffer_with_memory(create_info, memory_create_info);
+        vertex_staging_buffer.map_memory(vertices);
+
+        create_info.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer;
+        memory_create_info.properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        m_vertex_buffer = std::make_shared<VulkanBufferHandle>(create_buffer_with_memory(create_info, memory_create_info));
+
+        copy_buffer(vertex_staging_buffer, *m_vertex_buffer, create_info.size);
+        vertex_staging_buffer.destroy_with_memory();
+
+        create_info.usage = vk::BufferUsageFlagBits::eTransferSrc;
+        create_info.size = sizeof(indices[0]) * indices.size();
+        memory_create_info.properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+        VulkanBufferHandle index_staging_buffer = create_buffer_with_memory(create_info, memory_create_info);
+        index_staging_buffer.map_memory(indices);
+
+        create_info.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer;
+        memory_create_info.properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        m_index_buffer = std::make_shared<VulkanBufferHandle>(create_buffer_with_memory(create_info, memory_create_info));
+
+        copy_buffer(index_staging_buffer, *m_index_buffer, create_info.size);
+        index_staging_buffer.destroy_with_memory();
+
+        create_info.size = sizeof(UniformBufferObject);
+        create_info.usage = vk::BufferUsageFlagBits::eUniformBuffer;
+        memory_create_info.properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+        m_uniform_buffer = std::make_shared<VulkanBufferHandle>(create_buffer_with_memory(create_info, memory_create_info));
+        m_uniform_buffer_mapped = device().mapMemory(static_cast<vk::DeviceMemory>(m_uniform_buffer->memory()), 0, sizeof(UniformBufferObject));
+    }
+
     void VulkanPipeline::ReInitSwapChain(vk::SwapchainCreateInfoKHR &swap_chain_create_info)
     {
         // 等待这个逻辑设备host的所有队列的的任务完成
@@ -634,6 +729,7 @@ namespace jre
         //  it doesn't mean that they are actually visible on the GPU yet
         // The transfer of data to the GPU is an operation that happens in the background and the specification simply tells us that it is guaranteed to be complete as of the next call to vkQueueSubmit.
     }
+
     void VulkanPipeline::DestroySwapChain()
     {
         for (auto &frame_buffer : m_frame_buffers)
@@ -660,6 +756,36 @@ namespace jre
         }
         throw std::runtime_error("failed to find suitable memory type!");
     }
+
+    void VulkanPipeline::copy_buffer(const VulkanBufferHandle &src_buffer, const VulkanBufferHandle &dst_buffer, size_t size)
+    {
+        vk::CommandBufferAllocateInfo alloc_info{};
+        alloc_info.level = vk::CommandBufferLevel::ePrimary;
+        alloc_info.commandPool = command_pool();
+        alloc_info.commandBufferCount = 1;
+
+        vk::CommandBuffer command_buffer = device().allocateCommandBuffers(alloc_info)[0];
+
+        vk::CommandBufferBeginInfo begin_info{};
+        begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+        command_buffer.begin(begin_info);
+
+        vk::BufferCopy copy_region{};
+        copy_region.size = size;
+        command_buffer.copyBuffer(src_buffer.buffer(), dst_buffer.buffer(), copy_region);
+
+        command_buffer.end();
+
+        vk::SubmitInfo submit_info{};
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &command_buffer;
+
+        graphics_queue().submit(submit_info, nullptr);
+        graphics_queue().waitIdle();
+
+        device().freeCommandBuffers(command_pool(), command_buffer);
+    }
+
     VulkanPipeline::VulkanPipelineDrawContext VulkanPipeline::BeginDraw()
     {
         return VulkanPipeline::VulkanPipelineDrawContext(*this);
@@ -675,6 +801,8 @@ namespace jre
         // 会等m_image_available_semaphore signal了，然后再执行
         auto res = pipeline.m_device.acquireNextImageKHR(pipeline.m_swapchain, UINT64_MAX, pipeline.m_image_available_semaphore, nullptr);
         image_index = res.value; // m_swap_chain_images的index
+
+        pipeline.UpdateUniformBuffer();
 
         // record command buffer
 
@@ -740,5 +868,56 @@ namespace jre
         present_info.pSwapchains = &m_pipeline.m_swapchain;
         present_info.pImageIndices = &image_index;
         m_pipeline.m_present_queue.presentKHR(present_info);
+    }
+
+    void VulkanPipeline::UpdateUniformBuffer()
+    {
+        static auto startTime = std::chrono::high_resolution_clock::now();
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+        UniformBufferObject ubo{};
+        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.proj = glm::perspective(glm::radians(45.0f), swap_chain_extent().width / (float)swap_chain_extent().height, 0.1f, 10.0f);
+        ubo.proj[1][1] *= -1;
+
+        memcpy(m_uniform_buffer_mapped, &ubo, sizeof(ubo));
+    }
+
+    void VulkanPipeline::draw(const DrawContext &draw_context)
+    {
+        auto &command_buffer = draw_context.command_buffer;
+        command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphics_pipeline());
+
+        vk::Viewport viewport;
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(swap_chain_extent().width);
+        viewport.height = static_cast<float>(swap_chain_extent().height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        command_buffer.setViewport(0, viewport);
+
+        vk::Rect2D scissor;
+        scissor.offset = vk::Offset2D{0, 0};
+        scissor.extent = swap_chain_extent();
+        command_buffer.setScissor(0, scissor);
+
+        vk::Buffer vertex_buffers[] = {static_cast<vk::Buffer>(*m_vertex_buffer)};
+        vk::DeviceSize offsets[] = {0};
+        command_buffer.bindVertexBuffers(0, 1, vertex_buffers, offsets);
+
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout, 0, m_descriptor_set, nullptr);
+
+        command_buffer.bindIndexBuffer(static_cast<vk::Buffer>(*m_index_buffer), 0, vk::IndexType::eUint16);
+
+        // vertexCount: Even though we don't have a vertex buffer, we technically still have 3 vertices to draw.
+        // instanceCount: Used for instanced rendering, use 1 if you're not doing that.
+        // firstVertex: Used as an offset into the vertex buffer, defines the lowest value of gl_VertexIndex.
+        // firstInstance: Used as an offset for instanced rendering, defines the lowest value of gl_InstanceIndex.
+        // command_buffer.draw(3, 1, 0, 0);
+        command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
     }
 }

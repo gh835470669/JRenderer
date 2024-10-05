@@ -2,11 +2,20 @@
 
 #include "vulkan/vulkan.hpp"
 #include "vulkan_buffer.h"
+#include "main_loop_context.h"
 #include "shader.h"
+#include "jmath.h"
+#include "vulkan_vertex.h"
 #include <memory>
 
 namespace jre
 {
+    struct UniformBufferObject
+    {
+        jmath::mat4 model;
+        jmath::mat4 view;
+        jmath::mat4 proj;
+    };
 
     class VulkanPipeline
     {
@@ -57,6 +66,9 @@ namespace jre
         VulkanMemoryHandle allocate_memory(VulkanBufferHandle &buffer, VulkanMemoryCreateInfo &memory_create_info);
         void free_memory(VulkanMemoryHandle &memory);
         void map_memory(VulkanMemoryHandle &memory, const void *data, size_t size);
+        void copy_buffer(const VulkanBufferHandle &src_buffer, const VulkanBufferHandle &dst_buffer, size_t size);
+
+        void draw(const DrawContext &draw_context);
 
     private:
         vk::Instance m_instance;
@@ -94,6 +106,22 @@ namespace jre
         vk::PhysicalDeviceMemoryProperties m_physical_device_memory_properties;
         std::vector<vk::DeviceMemory> m_device_memories;
 
+        vk::DescriptorSetLayout m_descriptor_set_layout;
+        vk::DescriptorPool m_descriptor_pool;
+        vk::DescriptorSet m_descriptor_set;
+
+        // 坐标系https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules#page_Vertex-shader
+        const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                              {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                                              {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                                              {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+        std::shared_ptr<VulkanBufferHandle> m_vertex_buffer;
+        const std::vector<uint16_t> indices = {
+            0, 1, 2, 2, 3, 0};
+        std::shared_ptr<VulkanBufferHandle> m_index_buffer;
+        std::shared_ptr<VulkanBufferHandle> m_uniform_buffer;
+        void *m_uniform_buffer_mapped;
+
         void InitVulkan();
         void InitInstance();
         void InitPhysicalDevice();
@@ -108,6 +136,12 @@ namespace jre
         void InitCommandPool();
         void InitCommandBuffer();
         void InitSyncObjects();
+        void InitDescriptorPool();
+        void InitDescriptorSet();
+        void InitDescriptorSetLayout();
+        void InitBuffers();
+
+        void UpdateUniformBuffer();
 
         void DestroySwapChain();
 

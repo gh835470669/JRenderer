@@ -4,6 +4,7 @@
 
 namespace jre
 {
+
     class VulkanMemoryCreateInfo
     {
     public:
@@ -18,6 +19,7 @@ namespace jre
         VulkanMemoryHandle() = default;
         VulkanMemoryHandle(vk::DeviceMemory memory) : m_memory(memory) {};
         ~VulkanMemoryHandle() = default;
+        explicit operator vk::DeviceMemory() const { return m_memory; }
 
     private:
         vk::DeviceMemory m_memory;
@@ -45,7 +47,6 @@ namespace jre
         {
             m_pipeline.map_memory(m_memory, static_cast<const void *>(data.data()), data.size() * sizeof(T));
         }
-
         void destroy();
         void destroy_with_memory();
 
