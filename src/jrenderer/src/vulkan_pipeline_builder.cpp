@@ -27,6 +27,7 @@ namespace jre
         pipeline->InitCommandPool();
         pipeline->InitCommandBuffer();
         pipeline->InitSyncObjects();
+        pipeline->LoadModel();
         pipeline->InitBuffers();
         pipeline->InitTexture();
         pipeline->InitDescriptorPool();

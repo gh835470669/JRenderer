@@ -52,5 +52,10 @@ namespace jre
 
             return attribute_descriptions;
         }
+
+        bool operator==(const Vertex &other) const
+        {
+            return pos == other.pos && color == other.color && tex_coord == other.tex_coord;
+        }
     };
 }
