@@ -3,6 +3,6 @@
 class ImguiWindow
 {
 public:
-    virtual void Tick() {};
+    virtual void tick() {};
     virtual ~ImguiWindow() = default;
 };

@@ -7,3 +7,6 @@
 [submodule "stb"]
 	path = stb
 	url = https://github.com/nothings/stb.git
+[submodule "GSL"]
+	path = GSL
+	url = https://github.com/microsoft/GSL.git

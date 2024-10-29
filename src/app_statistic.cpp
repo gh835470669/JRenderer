@@ -1,8 +1,8 @@
 #include "app_statistic.h"
 #include "tracy/Tracy.hpp"
 
-void Statistics::Tick()
+void Statistics::tick()
 {
     ZoneScoped;
-    frame_counter.Tick();
+    frame_counter_graph.tick();
 }

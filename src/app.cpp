@@ -9,8 +9,6 @@ App::App(HINSTANCE hinst, HINSTANCE hprev, LPSTR cmdline, int show)
     // AllocConsole();
     // freopen("CONOUT$", "w", stdout);
     // FreeConsole();
-
-    //     window.message_handlers.push_back(imgui_context);
 }
 
 App::~App()
@@ -23,13 +21,14 @@ int App::MainLoop()
     while (!running_msg)
     {
         ZoneScoped;
-        m_statistics.Tick();
+        m_statistics.tick();
         m_renderer.new_imgui_frame();
-        imwin_debug.Tick();
+        imwin_debug.tick();
 
         m_renderer.new_frame();
         running_msg = window.ProcessMessage();
         FrameMark;
     }
+    m_renderer.graphics().wait_idle(); // wait for the device to be idle before shutting down
     return running_msg;
 }

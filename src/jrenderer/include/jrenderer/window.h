@@ -2,7 +2,7 @@
 
 #include <windows.h>
 #include <list>
-#include <tuple>
+#include "jmath.h"
 
 namespace jre
 {
@@ -33,10 +33,12 @@ namespace jre
 
         int ProcessMessage();
 
-        HINSTANCE hinstance() { return m_hinst; };
-        HWND hwnd() { return m_hwnd; };
-        using WinSize = std::tuple<int, int>;
-        WinSize size();
+        HINSTANCE hinstance() const noexcept { return m_hinst; };
+        HWND hwnd() const noexcept { return m_hwnd; };
+        using WinSize = jmath::ivec2;
+        WinSize size() const;
+        int width() const { return size().x; }
+        int height() const { return size().y; }
 
         std::list<std::reference_wrapper<IWindowMessageHandler>> message_handlers;
     };

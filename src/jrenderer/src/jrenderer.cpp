@@ -7,15 +7,38 @@
 namespace jre
 {
     JRenderer::JRenderer(Window &window) : m_window(window),
-                                           m_pipeline_builder(window.hinstance(), window.hwnd(),
-                                                              VulkanPipelineSwapChainBuilder(
-                                                                  std::get<0>(m_window.size()),
-                                                                  std::get<1>(m_window.size()),
-                                                                  m_render_setting.vsync)),
-                                           m_pipeline(m_pipeline_builder.Build()),
-                                           m_imgui_context(*m_pipeline, window)
+                                           m_graphics(&window),
+                                           m_res_meshes(m_graphics.logical_device(), std::move(m_graphics.command_pool()->allocate_command_buffer())),
+                                           m_res_textures(m_graphics.logical_device(), std::move(m_graphics.command_pool()->allocate_command_buffer())),
+                                           model(
+                                               m_res_meshes.get_mesh("res/model/viking_room/viking_room.obj"),
+                                               m_res_textures.get_texture("res/model/viking_room/viking_room.png")),
+                                           m_imgui_context(m_window, m_graphics)
     {
         m_window.message_handlers.push_back(m_imgui_context);
+
+        render_set.descriptor_set = m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+                                                                      {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}});
+
+        render_set.graphics_pipeline = std::make_shared<GraphicsPipeline>(
+            m_graphics.logical_device(),
+            GraphicsPipelineCreateInfo{
+                *m_graphics.render_pass(),
+                std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/test_vert.spv"),
+                std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/test_frag.spv"),
+                Vertex::get_pipeline_vertex_input_state(),
+                {render_set.descriptor_set->descriptor_set_layout()},
+                {},
+                true,
+                false});
+
+        render_set.render_objects.push_back(model);
+        render_set.uniform_buffer = std::make_shared<UniformBuffer<UniformBufferObject>>(m_graphics.logical_device());
+        render_set.descriptor_set->update_descriptor_sets<UniformBufferObject>({render_set.uniform_buffer.get()}, {model.texture.get()});
+
+        render_set_renderer.func_get_viewport = viewport::get_full_viewport;
+        render_set_renderer.func_get_scissor = scissor::get_full_scissor;
+        render_set_renderer.render_set = &render_set;
     }
 
     JRenderer::~JRenderer()
@@ -29,52 +52,29 @@ namespace jre
 
     void JRenderer::new_frame()
     {
-        // m_imgui_context.draw();
-        try
         {
             ZoneScoped;
-            jre::VulkanPipeline::VulkanPipelineDrawContext pipeline_draw_context = m_pipeline->BeginDraw();
-            jre::DrawContext draw_context =
-                {
-                    pipeline_draw_context.command_buffer(),
-                };
-            draw(draw_context);
-            m_imgui_context.draw(draw_context);
+            tick();
         }
-        catch (vk::OutOfDateKHRError)
         {
-            // 当窗口的大小变化的时候，这个异常会爆出来
-            // 一般是presentKHR爆出来的
-            // C接口的话是判断presentKHR的返回值，https://github.com/KhronosGroup/Vulkan-Hpp/issues/274 这里会说，我自己创造性的用捕捉异常的方式解决这个问题，看来我C++理解的还是不错><
-            // 处理参考代码https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation#page_Recreating-the-swap-chain
-            // 这个重新创建需要在presentKHR之后，为的是保证m_render_finished_semaphore信号量被signal了
-            // 如果需要显式的改变分辨率，就用触发变量 https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation#page_Handling-resizes-explicitly
-            ReInitSwapChain();
-            // present error
-            // VK_ERROR_OUT_OF_DATE_KHR: The swap chain has become incompatible with the surface and can no longer be used for rendering. Usually happens after a 【window resize】.
-            // VK_SUBOPTIMAL_KHR: The swap chain can still be used to successfully present to the surface, but the surface properties are no longer matched exactly. 这个还没试过，如果这个出现也是ReInitSwapChain
+            ZoneScoped;
+            m_graphics.draw(
+                std::vector<IRenderSetRenderer *>{&render_set_renderer, &m_imgui_context});
+            // m_imgui_context.draw(draw_context);
         }
     }
 
-    void JRenderer::ReInitSwapChain()
+    void JRenderer::tick()
     {
-        auto size = m_window.size();
-        m_pipeline_builder.swap_chain_builder.SetSize(std::get<0>(size), std::get<1>(size));
-        m_pipeline->ReInitSwapChain(m_pipeline_builder.swap_chain_builder.Build(*m_pipeline));
-    }
 
-    void JRendererRebuilder::setVsync(bool vsync)
-    {
-        if (m_renderer.m_render_setting.vsync == vsync)
+        if (m_graphics.swap_chain()->extent().width == 0 || m_graphics.swap_chain()->extent().height == 0)
             return;
-        m_renderer.m_render_setting.vsync = vsync;
-        m_renderer.m_pipeline_builder.swap_chain_builder.SetVsync(vsync);
-        m_renderer.m_pipeline->ReInitSwapChain(m_renderer.m_pipeline_builder.swap_chain_builder.Build(*m_renderer.m_pipeline));
-    }
+        static auto startTime = std::chrono::high_resolution_clock::now();
 
-    void JRenderer::draw(const DrawContext &draw_context)
-    {
-        m_pipeline->draw(draw_context);
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+        model.model_matrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     }
 
 } // namespace jre

@@ -5,10 +5,10 @@
 class Statistics
 {
 public:
-    Statistics() = default;
+    Statistics() : frame_counter_graph(50) {}
     ~Statistics() = default;
 
-    jre::stats::FrameCounter frame_counter;
+    jre::stats::FrameCounterGraph frame_counter_graph;
 
-    void Tick();
+    void tick();
 };

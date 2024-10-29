@@ -1,59 +1,45 @@
 #pragma once
 
-#include "details/vulkan_pipeline.h"
-#include "details/vulkan_pipeline_builder.h"
 #include "details/imgui_context.h"
-#include "details/vulkan_vertex.h"
-#include "window.h"
+#include "jrenderer/graphics.h"
+#include "jrenderer/window.h"
+#include "jrenderer/render_set.h"
+#include "jrenderer/mesh.h"
+#include "jrenderer/model.h"
 
 namespace jre
 {
-
-    class RenderSetting
-    {
-    public:
-        bool vsync = false;
-    };
-
-    class JRenderer;
-    class JRendererRebuilder
-    {
-    public:
-        JRendererRebuilder(JRenderer &renderer) : m_renderer(renderer) {};
-        ~JRendererRebuilder() = default;
-
-        void setVsync(bool vsync);
-
-    private:
-        JRenderer &m_renderer;
-    };
-
-    class JRenderer : IDrawable
+    class JRenderer
     {
         friend class JRendererRebuilder;
 
     private:
         Window &m_window;
-        RenderSetting m_render_setting;
-        VulkanPipelineBuilder m_pipeline_builder;
-        std::unique_ptr<VulkanPipeline> m_pipeline;
+        // VulkanPipelineBuilder m_pipeline_builder;
+        // std::unique_ptr<VulkanPipeline> m_pipeline;
+
+        Graphics m_graphics;
+
+        MeshResources<> m_res_meshes;
+        TextureResources m_res_textures;
+
+        Model model;
+
+        DefaultRenderSet render_set;
+        DefaultRenderSetRenderer render_set_renderer;
+
         imgui::ImguiContext m_imgui_context;
 
-        void draw(const DrawContext &draw_context) override;
+        void tick();
 
     public:
         JRenderer(Window &window);
         ~JRenderer();
 
-        inline VulkanPipeline &pipeline() { return *m_pipeline; }
-        inline const RenderSetting &render_setting() { return m_render_setting; }
-
-        JRendererRebuilder GetRebuilder() { return JRendererRebuilder(*this); };
+        inline Graphics &graphics() { return m_graphics; }
 
         void new_imgui_frame();
         void new_frame();
-
-        void ReInitSwapChain();
     };
 
 }

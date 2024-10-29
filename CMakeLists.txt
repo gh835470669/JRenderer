@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.11)
 
 project(JRenderer)
 
+set(CMAKE_CXX_STANDARD 17)
+
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HPP_SOURCES "src/*.hpp")
 file(GLOB_RECURSE H_SOURCES "src/*.h")
@@ -48,13 +50,21 @@ FetchContent_MakeAvailable(glm)
 # stb
 include_directories("stb")
 
+# gsl
+include_directories("GSL/include")
+
 # vulkan
 add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
 set(LIBS "vulkan-1.lib")
 link_directories("third_party/lib")
 # link_directories("third_party/bin")
 
-# set(CMAKE_CXX_STANDARD 14)
+FetchContent_Declare(
+    cappuccino
+    GIT_REPOSITORY https://github.com/jbaldwin/libcappuccino.git
+    GIT_TAG        v1.0.0
+)
+FetchContent_MakeAvailable(cappuccino)
 
 add_subdirectory(src/jrenderer)
 

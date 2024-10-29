@@ -1,4 +1,4 @@
-#include "window.h"
+#include "jrenderer/window.h"
 
 namespace jre
 {
@@ -142,10 +142,10 @@ namespace jre
         return 0;
     }
 
-    Window::WinSize Window::size()
+    Window::WinSize Window::size() const
     {
         RECT rect;
         GetWindowRect(m_hwnd, &rect);
-        return std::make_tuple(rect.right - rect.left, rect.bottom - rect.top);
+        return {rect.right - rect.left, rect.bottom - rect.top};
     }
 }

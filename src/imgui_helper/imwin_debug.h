@@ -13,5 +13,5 @@ private:
 
 public:
     ImWinDebug(Statistics &stat, jre::JRenderer &renderer) : m_statistics(stat), m_renderer(renderer) {};
-    void Tick() override;
+    void tick() override;
 };
