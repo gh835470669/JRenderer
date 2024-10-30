@@ -29,12 +29,12 @@ namespace jre
 
         for (const auto &render_obj : render_set->render_objects)
         {
-            update_uniform_buffer(*graphics.swap_chain(), render_obj);
+            update_uniform_buffer(*graphics.swap_chain(), render_obj); // 这里并不会记录command buffer，其实相当于先把所有ubo更新了，然后再执行所有的draw call
 
             vk::DeviceSize offsets[] = {0};
             command_buffer.command_buffer().bindVertexBuffers(0, 1, &render_obj.get().get_mesh()->vertex_buffer().buffer(), offsets);
             command_buffer.command_buffer().bindIndexBuffer(render_obj.get().get_mesh()->index_buffer().buffer(), 0, vk::IndexType::eUint32);
-            command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline->pipeline_layout(), 0, render_set->descriptor_set->descriptor_set(), nullptr);
+            command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline->pipeline_layout(), 0, render_obj.get().get_descriptor_set().descriptor_set(), nullptr);
 
             // vertexCount: Even though we don't have a vertex buffer, we technically still have 3 vertices to draw.
             // instanceCount: Used for instanced rendering, use 1 if you're not doing that.
@@ -45,14 +45,13 @@ namespace jre
         }
     }
 
-    void DefaultRenderSetRenderer::update_uniform_buffer(const SwapChain &swap_chian, const IRenderSetObject<> &render_obj) const
+    void DefaultRenderSetRenderer::update_uniform_buffer(const SwapChain &swap_chian, IRenderSetObject<> &render_obj) const
     {
         UniformBufferObject ubo{};
         ubo.model = render_obj.get_model_matrix();
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = glm::lookAt(glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), swap_chian.extent().width / (float)swap_chian.extent().height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
-
-        render_set->uniform_buffer->update_buffer(ubo);
+        render_obj.get_uniform_buffer().update_buffer(ubo);
     }
 }

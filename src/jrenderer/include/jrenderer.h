@@ -24,6 +24,7 @@ namespace jre
         TextureResources m_res_textures;
 
         Model model;
+        Model model2;
 
         DefaultRenderSet render_set;
         DefaultRenderSetRenderer render_set_renderer;

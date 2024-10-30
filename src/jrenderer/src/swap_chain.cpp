@@ -34,7 +34,7 @@ namespace jre
         vk::PresentModeKHR present_mode = vk::PresentModeKHR::eMailbox;
         try
         {
-            present_mode = std::get<bool>(create_info.vsync) ? vk::PresentModeKHR::eFifoRelaxed : vk::PresentModeKHR::eMailbox;
+            present_mode = std::get<bool>(create_info.vsync) ? vk::PresentModeKHR::eFifo : vk::PresentModeKHR::eMailbox;
         }
         catch (const std::bad_variant_access &)
         {

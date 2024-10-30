@@ -12,13 +12,19 @@ namespace jre
                                            m_res_textures(m_graphics.logical_device(), std::move(m_graphics.command_pool()->allocate_command_buffer())),
                                            model(
                                                m_res_meshes.get_mesh("res/model/viking_room/viking_room.obj"),
-                                               m_res_textures.get_texture("res/model/viking_room/viking_room.png")),
+                                               m_res_textures.get_texture("res/model/viking_room/viking_room.png"),
+                                               m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+                                                                                 {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}}),
+                                               std::make_unique<UniformBuffer<UniformBufferObject>>(m_graphics.logical_device())),
+                                           model2(
+                                               m_res_meshes.get_mesh("res/model/viking_room/viking_room.obj"),
+                                               m_res_textures.get_texture("res/model/viking_room/viking_room.png"),
+                                               m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
+                                                                                 {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}}),
+                                               std::make_unique<UniformBuffer<UniformBufferObject>>(m_graphics.logical_device())),
                                            m_imgui_context(m_window, m_graphics)
     {
         m_window.message_handlers.push_back(m_imgui_context);
-
-        render_set.descriptor_set = m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
-                                                                      {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}});
 
         render_set.graphics_pipeline = std::make_shared<GraphicsPipeline>(
             m_graphics.logical_device(),
@@ -27,14 +33,15 @@ namespace jre
                 std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/test_vert.spv"),
                 std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/test_frag.spv"),
                 Vertex::get_pipeline_vertex_input_state(),
-                {render_set.descriptor_set->descriptor_set_layout()},
+                {model.get_descriptor_set().descriptor_set_layout()},
                 {},
                 true,
                 false});
 
         render_set.render_objects.push_back(model);
-        render_set.uniform_buffer = std::make_shared<UniformBuffer<UniformBufferObject>>(m_graphics.logical_device());
-        render_set.descriptor_set->update_descriptor_sets<UniformBufferObject>({render_set.uniform_buffer.get()}, {model.texture.get()});
+        render_set.render_objects.push_back(model2);
+        model.descriptor_set->update_descriptor_sets<UniformBufferObject>({model.uniform_buffer.get()}, {model.texture.get()});
+        model2.descriptor_set->update_descriptor_sets<UniformBufferObject>({model2.uniform_buffer.get()}, {model2.texture.get()});
 
         render_set_renderer.func_get_viewport = viewport::get_full_viewport;
         render_set_renderer.func_get_scissor = scissor::get_full_scissor;
@@ -75,6 +82,7 @@ namespace jre
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         model.model_matrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        model2.model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), time * glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     }
 
 } // namespace jre
