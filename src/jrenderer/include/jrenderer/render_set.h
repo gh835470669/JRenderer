@@ -37,6 +37,7 @@ namespace jre
     public:
         std::shared_ptr<GraphicsPipeline> graphics_pipeline;
         std::vector<std::reference_wrapper<IRenderSetObject<Vertex, uint32_t>>> render_objects;
+        glm::mat4 view_matrix;
         DefaultRenderSet(/* args */) = default;
         ~DefaultRenderSet() = default;
     };

@@ -10,3 +10,6 @@
 [submodule "GSL"]
 	path = GSL
 	url = https://github.com/microsoft/GSL.git
+[submodule "gainput"]
+	path = gainput
+	url = https://github.com/jkuhlmann/gainput.git

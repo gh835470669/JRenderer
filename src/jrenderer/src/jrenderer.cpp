@@ -1,6 +1,7 @@
 #include "jrenderer.h"
 #include <iostream>
 #include "tracy/Tracy.hpp"
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
 
@@ -22,7 +23,8 @@ namespace jre
                                                m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
                                                                                  {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}}),
                                                std::make_unique<UniformBuffer<UniformBufferObject>>(m_graphics.logical_device())),
-                                           m_imgui_context(m_window, m_graphics)
+                                           m_imgui_context(m_window, m_graphics),
+                                           m_camera_controller(m_input_manager)
     {
         m_window.message_handlers.push_back(m_imgui_context);
 
@@ -46,6 +48,11 @@ namespace jre
         render_set_renderer.func_get_viewport = viewport::get_full_viewport;
         render_set_renderer.func_get_scissor = scissor::get_full_scissor;
         render_set_renderer.render_set = &render_set;
+
+        m_input_manager.input_manager().SetDisplaySize(m_window.width(), m_window.height());
+        m_camera = camera_init();
+        camera_move(&m_camera, Vec3(-5.0f, 0.0f, 0.0f));
+        m_camera_controller.camera = &m_camera;
     }
 
     JRenderer::~JRenderer()
@@ -57,21 +64,20 @@ namespace jre
         m_imgui_context.new_frame();
     }
 
-    void JRenderer::new_frame()
+    void JRenderer::new_frame(const TickContext& context)
     {
         {
             ZoneScoped;
-            tick();
+            tick(context);
         }
         {
             ZoneScoped;
             m_graphics.draw(
                 std::vector<IRenderSetRenderer *>{&render_set_renderer, &m_imgui_context});
-            // m_imgui_context.draw(draw_context);
         }
     }
 
-    void JRenderer::tick()
+    void JRenderer::tick(const TickContext &context)
     {
 
         if (m_graphics.swap_chain()->extent().width == 0 || m_graphics.swap_chain()->extent().height == 0)
@@ -82,7 +88,13 @@ namespace jre
         float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         model.model_matrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        model2.model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), time * glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    }
+        model2.model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 0.0f, 0.0f)) * glm::rotate(glm::mat4(1.0f), time * glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        m_camera_controller.tick(context);
+
+        float view_matrix[16];
+        camera_view_matrix(&m_camera, view_matrix);
+        render_set.view_matrix = glm::make_mat4(view_matrix);
+}
 
 } // namespace jre

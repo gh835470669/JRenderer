@@ -5,6 +5,7 @@
 #include "imgui_helper/imwin_debug.h"
 // #include "window.h"
 #include "app_statistic.h"
+#include "gainput/gainput.h"
 
 class App
 {

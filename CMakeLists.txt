@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 
 project(JRenderer)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HPP_SOURCES "src/*.hpp")
@@ -15,6 +15,8 @@ file(GLOB IMGUI_HELPER_SOURCES "src/imgui_helper/*.cpp")
 file(GLOB IMGUI_HEADER_HELPER_SOURCES "src/imgui_helper/*.h")
 file(GLOB_RECURSE STAT_SOURCES "src/helper/*.cpp")
 file(GLOB_RECURSE STAT_H_SOURCES "src/helper/*.h")
+# file(GLOB_RECURSE GAINPUT gainput/lib/source/*.cpp gainput/lib/source/*.h)
+# file(GLOB_RECURSE GAINPUT_H "gainput/lib/source/*.h")
 list(APPEND SOURCES ${IMGUI_SOURCES})
 list(APPEND SOURCES ${IMGUI_HEADER_HELPER_SOURCES})
 list(APPEND SOURCES ${IMGUI_HELPER_SOURCES})
@@ -22,6 +24,8 @@ list(APPEND SOURCES ${HPP_SOURCES})
 list(APPEND SOURCES ${H_SOURCES})
 list(APPEND SOURCES ${STAT_SOURCES})
 list(APPEND SOURCES ${STAT_H_SOURCES})
+# list(APPEND SOURCES ${GAINPUT})
+# list(APPEND SOURCES ${GAINPUT_H})
 
 # tracy
 list(APPEND SOURCES "tracy/public/TracyClient.cpp")
@@ -29,6 +33,7 @@ list(APPEND SOURCES "tracy/public/TracyClient.cpp")
 include_directories("third_party/include")
 include_directories("imgui")
 include_directories("tracy/public")
+include_directories("gainput/lib/include")
 
 
 include(FetchContent)
@@ -55,7 +60,7 @@ include_directories("GSL/include")
 
 # vulkan
 add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
-set(LIBS "vulkan-1.lib")
+set(LIBS "vulkan-1.lib" "gainput.lib")
 link_directories("third_party/lib")
 # link_directories("third_party/bin")
 
@@ -67,6 +72,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cappuccino)
 
 add_subdirectory(src/jrenderer)
+
+# add_subdirectory(gainput)
+# add_custom_command(TARGET gainput POST_BUILD        # Adds a post-build event to MyTest
+#     COMMAND ${CMAKE_COMMAND} -E copy_if_different  # which executes "cmake - E copy_if_different..."
+#         "${PROJECT_SOURCE_DIR}/libs/test.dll"      # <--this is in-file
+#         $<PROJECT_BINARY_DIR/CMAKE_BUILD_TYPE>)                 # <--this is out-file path
 
 add_executable(JRenderer WIN32 ${SOURCES})
 target_include_directories(JRenderer PUBLIC

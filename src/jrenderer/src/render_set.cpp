@@ -21,6 +21,7 @@ namespace jre
     {
         if (graphics.swap_chain()->extent().width == 0 || graphics.swap_chain()->extent().height == 0)
             return;
+
         command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline);
 
         command_buffer.command_buffer().setViewport(0, func_get_viewport(graphics.swap_chain()->extent()));
@@ -49,7 +50,8 @@ namespace jre
     {
         UniformBufferObject ubo{};
         ubo.model = render_obj.get_model_matrix();
-        ubo.view = glm::lookAt(glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        // ubo.view = glm::lookAt(glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = render_set->view_matrix;
         ubo.proj = glm::perspective(glm::radians(45.0f), swap_chian.extent().width / (float)swap_chian.extent().height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
         render_obj.get_uniform_buffer().update_buffer(ubo);

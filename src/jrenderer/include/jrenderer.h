@@ -6,10 +6,12 @@
 #include "jrenderer/render_set.h"
 #include "jrenderer/mesh.h"
 #include "jrenderer/model.h"
+#include "jrenderer/camera/camera_controller.h"
+#include "jrenderer/input_manager.h"
 
 namespace jre
 {
-    class JRenderer
+    class JRenderer : public ITickable
     {
         friend class JRendererRebuilder;
 
@@ -31,16 +33,22 @@ namespace jre
 
         imgui::ImguiContext m_imgui_context;
 
-        void tick();
+        InputManager m_input_manager;
+
+        Camera m_camera;
+        CameraController m_camera_controller;
+
+        void tick(const TickContext &context) override;
 
     public:
         JRenderer(Window &window);
         ~JRenderer();
 
         inline Graphics &graphics() { return m_graphics; }
+        inline InputManager &input_manager() { return m_input_manager; }
 
         void new_imgui_frame();
-        void new_frame();
+        void new_frame(const TickContext& context);
     };
 
 }

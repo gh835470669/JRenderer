@@ -3,6 +3,8 @@
 #include <vulkan/vulkan.hpp>
 #include <gsl/pointers>
 #include "jrenderer/uniform_buffer.h"
+#include "jrenderer/texture.h"
+#include "jrenderer/logical_device.h"
 
 namespace jre
 {

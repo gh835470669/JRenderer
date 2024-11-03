@@ -128,18 +128,19 @@ namespace jre
         return 0;
     }
 
-    int Window::ProcessMessage()
+    MSG Window::ProcessMessage(std::function<void(const MSG &)> callback)
     {
         MSG msg;
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
         { /* See Note 3,4 */
-            if (msg.message == WM_QUIT)
-                // return (int)msg.wParam;
-                return WM_QUIT;
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+            if (callback)
+            {
+                callback(msg);
+            }
         }
-        return 0;
+        return msg;
     }
 
     Window::WinSize Window::size() const

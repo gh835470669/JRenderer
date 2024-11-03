@@ -5,10 +5,11 @@ file(GLOB JRE_INCLUDE_SOURCES "include/*.h")
 file(GLOB JRE_INCLUDE_DETAILS_SOURCES "include/details/*.h")
 file(GLOB JRE_INCLUDE_DETAILS_SOURCES "include/jrenderer/*.h")
 file(GLOB JRE_INCLUDE_HPP_DETAILS_SOURCES "include/jrenderer/*.hpp")
+file(GLOB CAMERA_HPP_DETAILS_SOURCES "include/jrenderer/camera/*.h")
 
 include_directories("include")
 
-add_library(JRendererLib ${JRE_SOURCES} ${JRE_H_SOURCES} ${JRE_INCLUDE_SOURCES} ${JRE_INCLUDE_DETAILS_SOURCES} ${JRE_INCLUDE_HPP_DETAILS_SOURCES})
+add_library(JRendererLib ${JRE_SOURCES} ${JRE_H_SOURCES} ${JRE_INCLUDE_SOURCES} ${JRE_INCLUDE_DETAILS_SOURCES} ${JRE_INCLUDE_HPP_DETAILS_SOURCES} ${CAMERA_HPP_DETAILS_SOURCES})
 target_link_libraries(JRendererLib PUBLIC fmt::fmt glm::glm cappuccino)
 
 if (WIN32)

@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <list>
 #include "jmath.h"
+#include <functional>
 
 namespace jre
 {
@@ -31,7 +32,7 @@ namespace jre
                int show);
         ~Window();
 
-        int ProcessMessage();
+        MSG ProcessMessage(std::function<void(const MSG &)> callback = nullptr);
 
         HINSTANCE hinstance() const noexcept { return m_hinst; };
         HWND hwnd() const noexcept { return m_hwnd; };
