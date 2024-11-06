@@ -4,6 +4,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
+#include "jrenderer/asset/obj_file.h"
 
 namespace jre
 {
@@ -12,13 +13,13 @@ namespace jre
                                            m_res_meshes(m_graphics.logical_device(), std::move(m_graphics.command_pool()->allocate_command_buffer())),
                                            m_res_textures(m_graphics.logical_device(), std::move(m_graphics.command_pool()->allocate_command_buffer())),
                                            model(
-                                               m_res_meshes.get_mesh("res/model/viking_room/viking_room.obj"),
+                                               m_res_meshes.get_mesh("res/model/viking_room/viking_room.obj", ObjLoader<>()),
                                                m_res_textures.get_texture("res/model/viking_room/viking_room.png"),
                                                m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
                                                                                  {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}}),
                                                std::make_unique<UniformBuffer<UniformBufferObject>>(m_graphics.logical_device())),
                                            model2(
-                                               m_res_meshes.get_mesh("res/model/viking_room/viking_room.obj"),
+                                               m_res_meshes.get_mesh("res/model/viking_room/viking_room.obj", ObjLoader<>()),
                                                m_res_textures.get_texture("res/model/viking_room/viking_room.png"),
                                                m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex},
                                                                                  {1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}}),
@@ -64,7 +65,7 @@ namespace jre
         m_imgui_context.new_frame();
     }
 
-    void JRenderer::new_frame(const TickContext& context)
+    void JRenderer::new_frame(const TickContext &context)
     {
         {
             ZoneScoped;
@@ -95,6 +96,6 @@ namespace jre
         float view_matrix[16];
         camera_view_matrix(&m_camera, view_matrix);
         render_set.view_matrix = glm::make_mat4(view_matrix);
-}
+    }
 
 } // namespace jre

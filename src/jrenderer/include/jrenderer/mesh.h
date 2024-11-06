@@ -72,13 +72,7 @@ namespace jre
     class IMeshLoader
     {
     public:
-        virtual MeshData<VertexType, IndexType> load(const std::string &name) const = 0;
-    };
-
-    class ObjLoader : public IMeshLoader<Vertex, uint32_t>
-    {
-    public:
-        MeshData<Vertex, uint32_t> load(const std::string &name) const override;
+        virtual MeshData<VertexType, IndexType> load(const std::string &name) = 0;
     };
 
     class LogicalDevice;
@@ -94,7 +88,7 @@ namespace jre
     public:
         MeshResources(gsl::not_null<const LogicalDevice *> device, std::unique_ptr<const CommandBuffer> default_command_buffer) : m_device(device), m_default_command_buffer(std::move(default_command_buffer)) {}
 
-        std::shared_ptr<const Mesh<VertexType, IndexType>> get_mesh(const std::string &name, const CommandBuffer *command_buffer = nullptr, const IMeshLoader<VertexType> &loader = ObjLoader())
+        std::shared_ptr<const Mesh<VertexType, IndexType>> get_mesh(const std::string &name, IMeshLoader<VertexType, IndexType> &&loader, const CommandBuffer *command_buffer = nullptr)
         {
             return std::make_shared<const Mesh<VertexType, IndexType>>(m_device, command_buffer ? *command_buffer : *m_default_command_buffer, loader.load(name));
         }

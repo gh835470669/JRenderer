@@ -1,11 +1,11 @@
 
-file(GLOB JRE_SOURCES "src/*.cpp")
-file(GLOB JRE_H_SOURCES "src/*.h")
-file(GLOB JRE_INCLUDE_SOURCES "include/*.h")
-file(GLOB JRE_INCLUDE_DETAILS_SOURCES "include/details/*.h")
-file(GLOB JRE_INCLUDE_DETAILS_SOURCES "include/jrenderer/*.h")
-file(GLOB JRE_INCLUDE_HPP_DETAILS_SOURCES "include/jrenderer/*.hpp")
-file(GLOB CAMERA_HPP_DETAILS_SOURCES "include/jrenderer/camera/*.h")
+file(GLOB_RECURSE JRE_SOURCES src/*.cpp src/*.h src/*.hpp)
+# file(GLOB JRE_H_SOURCES "src/*.h")
+# file(GLOB JRE_INCLUDE_SOURCES "include/*.h")
+# file(GLOB JRE_INCLUDE_DETAILS_SOURCES "include/details/*.h")
+# file(GLOB JRE_INCLUDE_DETAILS_SOURCES "include/jrenderer/*.h")
+# file(GLOB JRE_INCLUDE_HPP_DETAILS_SOURCES "include/jrenderer/*.hpp")
+# file(GLOB CAMERA_HPP_DETAILS_SOURCES "include/jrenderer/camera/*.h")
 
 include_directories("include")
 
