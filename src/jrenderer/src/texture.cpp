@@ -1,6 +1,6 @@
 #include "jrenderer/texture.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <stb/stb_image.h>
 #include "jrenderer/buffer.h"
 
 namespace jre

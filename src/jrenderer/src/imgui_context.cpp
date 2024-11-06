@@ -1,8 +1,7 @@
 #define NOMINMAX
+#include <vulkan/vulkan.hpp>
+#include <imgui/backends/imgui_impl_win32.h>
 #include "details/imgui_context.h"
-#include "vulkan/vulkan.h"
-#include "../../../imgui/backends/imgui_impl_vulkan.h"
-#include "../../../imgui/backends/imgui_impl_win32.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 

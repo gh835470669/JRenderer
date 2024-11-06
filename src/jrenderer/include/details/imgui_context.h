@@ -1,11 +1,9 @@
 #pragma once
 
-#include "vulkan/vulkan.h"
-#include "../../../../imgui/imgui.h"
+#include <vulkan/vulkan.h>
+#include <imgui/imgui.h>
 #include "jrenderer/window.h"
 #include "main_loop_context.h"
-// #include "../../imgui/backends/imgui_impl_win32.h"
-// #include "../../imgui/backends/imgui_impl_vulkan.h"
 #include "jrenderer/graphics.h"
 #include "jrenderer/render_set.h"
 

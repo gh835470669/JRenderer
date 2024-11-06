@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../imgui/imgui.h"
+#include "imgui/imgui.h"
 #include "imgui_window_base.h"
 #include "../app_statistic.h"
 #include "jrenderer.h"

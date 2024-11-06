@@ -2,11 +2,11 @@
 
 #include <vulkan/vulkan.hpp>
 #include <gsl/pointers>
+#include <stb/stb_image.h>
+#include <vector>
 #include "jrenderer/image.h"
 #include "jrenderer/command_buffer.h"
 #include "jrenderer/resources.hpp"
-#include <stb_image.h>
-#include <vector>
 
 namespace jre
 {
