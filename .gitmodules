@@ -16,6 +16,3 @@
 [submodule "third_party/MMDLoader"]
 	path = third_party/include/MMDLoader
 	url = https://github.com/syoyo/MMDLoader.git
-[submodule "third_party/MMDFormats"]
-	path = third_party/MMDFormats
-	url = https://github.com/oguna/MMDFormats.git
