@@ -14,8 +14,10 @@ namespace jre
         CameraController(InputManager &input_manager);
 
         Camera *camera;
+        Camera default_camera;
 
         void tick(const TickContext &context) override;
+        void reset_default_camera();
 
     private:
         InputMap m_input_map;

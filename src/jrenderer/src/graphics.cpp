@@ -43,7 +43,7 @@ namespace jre
             const CommandBuffer &command_buffer = *m_frame_buffers[m_current_frame_buffer_index]->command_buffer();
             command_buffer.command_buffer().reset();
             command_buffer.begin();
-            m_render_pass.begin(command_buffer, *m_frame_buffers[m_current_frame_buffer_index], {{0, 0}, m_swap_chain->extent()}, vk::ClearColorValue(51.0f / 255.0f, 51.0f / 255.0f, 51.0f / 255.0f, 1.0f), vk::ClearDepthStencilValue(1.0f, 0.0f));
+            m_render_pass.begin(command_buffer, *m_frame_buffers[m_current_frame_buffer_index], {{0, 0}, m_swap_chain->extent()}, vk::ClearColorValue(51.0f / 255.0f, 51.0f / 255.0f, 51.0f / 255.0f, 1.0f), vk::ClearDepthStencilValue(1.0f, 0));
             for (auto &renderer : renderers)
             {
                 renderer->draw(*this, command_buffer);

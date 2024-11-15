@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.h src/*.hpp)
+
+# imgui
 file(GLOB IMGUI_SOURCES third_party/include/imgui/*.cpp
   third_party/include/imgui/backends/imgui_impl_win32.cpp
   third_party/include/imgui/backends/imgui_impl_vulkan.cpp
@@ -15,7 +17,19 @@ list(APPEND SOURCES ${IMGUI_SOURCES})
 # tracy
 list(APPEND SOURCES "third_party/tracy/public/TracyClient.cpp")
 
+# mmd
+# file(GLOB MMD_SOURCES third_party/include/MMDLoader/pmd_reader.h
+#   third_party/include/MMDLoader/pmd_reader.cc
+#   third_party/include/MMDLoader/pmd_model.h
+#   third_party/include/MMDLoader/mmd_math.h)
+# list(APPEND SOURCES ${MMD_SOURCES})
+set(MMD_DIR third_party/MMDFormats/MikuMikuFormats)
+file(GLOB MMD_SOURCES ${MMD_DIR}/Pmx.h ${MMD_DIR}/Pmx.cpp ${MMD_DIR}/EncodingHelper.h
+)
+list(APPEND SOURCES ${MMD_SOURCES})
+
 include_directories("third_party/include")
+include_directories(${MMD_DIR})
 include_directories("third_party/include/imgui")
 include_directories("third_party/tracy/public")
 include_directories("third_party/gainput/lib/include")
@@ -70,4 +84,5 @@ if(WIN32)
   # 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 [E:\JRenderer\build\JRenderer.vcxproj]
   # 936 是 GB2312 字符集的代码页。
   set_target_properties(JRenderer PROPERTIES COMPILE_FLAGS "/wd4819")
+  # set_target_properties(JRenderer PROPERTIES COMPILE_FLAGS "/utf-8") # mmd 的 pmd_reader.cc 用的是日文
 endif()

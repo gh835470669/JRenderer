@@ -77,8 +77,10 @@ namespace jre
         operator vk::DescriptorSet() const { return m_descriptor_set; }
         const vk::DescriptorSetLayout &descriptor_set_layout() const { return m_descriptor_set_layout; }
 
-        template <typename UniformBufferObjectType = void>
-        void update_descriptor_sets(std::vector<const UniformBuffer<UniformBufferObjectType> *> uniform_buffers = {}, std::vector<const Texture2D *> images = {})
+        template <typename UniformBufferObjectType = void,
+                  typename UniformBufferPtr = const UniformBuffer<UniformBufferObjectType> *const,
+                  typename Texture2DPtr = const Texture2D *const>
+        void update_descriptor_sets(const std::span<UniformBufferPtr> &uniform_buffers = {}, const std::span<Texture2DPtr> &images = {})
         {
             auto uniform_vec_cur = uniform_buffers.begin();
             auto image_vec_cur = images.begin();
@@ -105,6 +107,35 @@ namespace jre
             }
             m_device->device().updateDescriptorSets(descriptor_writes, {});
         }
+
+        // template <typename UniformBufferObjectType = void>
+        // void update_descriptor_sets(std::span<const UniformBuffer<UniformBufferObjectType> *const> uniform_buffers = {}, std::span<const Texture2D *const> images = {})
+        // {
+        //     auto uniform_vec_cur = uniform_buffers.begin();
+        //     auto image_vec_cur = images.begin();
+        //     std::vector<vk::WriteDescriptorSet> descriptor_writes;
+        //     descriptor_writes.reserve(bindings.size());
+        //     for (size_t i = 0; i < bindings.size(); ++i)
+        //     {
+        //         if (bindings[i].descriptorType == vk::DescriptorType::eUniformBuffer)
+        //         {
+        //             vk::DescriptorBufferInfo buffer_info = (*uniform_vec_cur)->descriptor();
+        //             uniform_vec_cur++;
+        //             descriptor_writes.emplace_back(m_descriptor_set, static_cast<uint32_t>(i), 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &buffer_info, nullptr);
+        //         }
+        //         else if (bindings[i].descriptorType == vk::DescriptorType::eCombinedImageSampler)
+        //         {
+        //             vk::DescriptorImageInfo image_info = (*image_vec_cur)->descriptor();
+        //             image_vec_cur++;
+        //             descriptor_writes.emplace_back(m_descriptor_set, static_cast<uint32_t>(i), 0, 1, vk::DescriptorType::eCombinedImageSampler, &image_info, nullptr);
+        //         }
+        //         else
+        //         {
+        //             throw std::runtime_error("Unsupported descriptor type");
+        //         }
+        //     }
+        //     m_device->device().updateDescriptorSets(descriptor_writes, {});
+        // }
 
         void update_descriptor_sets(std::vector<const Texture2D *> images);
     };

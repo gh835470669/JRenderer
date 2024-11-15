@@ -8,6 +8,7 @@
 #include "jrenderer/model.h"
 #include "jrenderer/camera/camera_controller.h"
 #include "jrenderer/input_manager.h"
+#include "jrenderer/star_rail_char_render_set.h"
 
 namespace jre
 {
@@ -31,6 +32,10 @@ namespace jre
         DefaultRenderSet render_set;
         DefaultRenderSetRenderer render_set_renderer;
 
+        PmxModel model_lingsha;
+        StarRailCharRenderSet star_rail_char_render_set;
+        StarRailCharRenderSetRenderer star_rail_char_render_set_renderer;
+
         imgui::ImguiContext m_imgui_context;
 
         InputManager m_input_manager;
@@ -46,9 +51,10 @@ namespace jre
 
         inline Graphics &graphics() { return m_graphics; }
         inline InputManager &input_manager() { return m_input_manager; }
+        inline Camera &camera() { return m_camera; }
 
         void new_imgui_frame();
-        void new_frame(const TickContext& context);
+        void new_frame(const TickContext &context);
     };
 
 }

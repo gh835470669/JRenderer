@@ -14,4 +14,6 @@ private:
 public:
     ImWinDebug(Statistics &stat, jre::JRenderer &renderer) : m_statistics(stat), m_renderer(renderer) {};
     void tick() override;
+
+    void camera_info();
 };

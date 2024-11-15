@@ -50,7 +50,6 @@ namespace jre
             int texWidth, texHeight;
             io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);
             ImageDataRef font_image_data(texWidth, texHeight,
-                                         vk::Format::eR8G8B8A8Unorm,
                                          4,
                                          fontData);
 

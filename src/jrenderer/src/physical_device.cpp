@@ -42,7 +42,25 @@ namespace jre
         throw std::runtime_error("failed to find suitable memory type!");
     }
 
-    std::unique_ptr<LogicalDevice> PhysicalDevice::create_logical_device() const
+    vk::SampleCountFlagBits PhysicalDevice::get_max_usable_sample_count() const
+    {
+        vk::SampleCountFlags counts = m_properties.limits.framebufferColorSampleCounts & m_properties.limits.framebufferDepthSampleCounts;
+        if (counts & vk::SampleCountFlagBits::e64)
+            return vk::SampleCountFlagBits::e64;
+        if (counts & vk::SampleCountFlagBits::e32)
+            return vk::SampleCountFlagBits::e32;
+        if (counts & vk::SampleCountFlagBits::e16)
+            return vk::SampleCountFlagBits::e16;
+        if (counts & vk::SampleCountFlagBits::e8)
+            return vk::SampleCountFlagBits::e8;
+        if (counts & vk::SampleCountFlagBits::e4)
+            return vk::SampleCountFlagBits::e4;
+        if (counts & vk::SampleCountFlagBits::e2)
+            return vk::SampleCountFlagBits::e2;
+        return vk::SampleCountFlagBits::e1;
+    }
+
+    std::unique_ptr<LogicalDevice> PhysicalDevice::create_logical_device()
     {
         return std::make_unique<LogicalDevice>(this);
     }

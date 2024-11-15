@@ -1,6 +1,7 @@
 #include "imwin_debug.h"
 #include "tracy/Tracy.hpp"
 #include <variant>
+#include "jrenderer.h"
 
 void ImWinDebug::tick()
 {
@@ -26,5 +27,21 @@ void ImWinDebug::tick()
     if (ImGui::Combo("present modes", &item_current, present_modes, IM_ARRAYSIZE(present_modes)))
     {
         m_renderer.graphics().set_vsync(static_cast<vk::PresentModeKHR>(item_current));
+    }
+
+    camera_info();
+}
+
+void ImWinDebug::camera_info()
+{
+    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        Camera &camera = m_renderer.camera();
+        CameraVec3 position = camera_eye(&camera);
+        ImGui::Text("position: %f, %f, %f", position.x, position.y, position.z);
+
+        glm::vec3 orient_eular = glm::eulerAngles(glm::quat{camera.orientation.w, camera.orientation.x, camera.orientation.y, camera.orientation.z});
+        orient_eular = glm::degrees(orient_eular);
+        ImGui::Text("orientation: %f, %f, %f", orient_eular.x, orient_eular.y, orient_eular.z);
     }
 }

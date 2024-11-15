@@ -82,7 +82,7 @@ namespace jre
             bool alpha_blending_enable = std::get<bool>(create_info.alpha_blending);
             color_blend_attachment = alpha_blending_enable ? GraphicsPipeline::defulat_color_blend_attachment_alpha() : GraphicsPipeline::defulat_color_blend_attachment_overwrite();
         }
-        catch (const std::bad_variant_access &e)
+        catch (const std::bad_variant_access &)
         {
             color_blend_attachment = std::get<vk::PipelineColorBlendAttachmentState>(create_info.alpha_blending);
         }

@@ -2,6 +2,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 #include "jrenderer/buffer.h"
+#include <filesystem>
 
 namespace jre
 {
@@ -24,10 +25,10 @@ namespace jre
         return image_info;
     }
 
-    STBImageData::STBImageData(const std::string &file_name) : m_format(vk::Format::eR8G8B8A8Unorm)
+    STBImageData::STBImageData(const std::string &file_name)
     {
+        m_data = stbi_load(file_name.c_str(), &m_width, &m_height, &m_channels, STBI_rgb_alpha);
         m_channels = 4;
-        m_data = stbi_load(file_name.c_str(), &m_width, &m_height, nullptr, STBI_rgb_alpha);
         if (!m_data)
         {
             throw std::runtime_error("failed to load texture image!");
@@ -49,4 +50,13 @@ namespace jre
         return std::make_shared<Texture2D>(m_device, command_buffer ? *command_buffer : *m_default_command_buffer, *loader.load(name));
     }
 
+    std::unique_ptr<ITextureLoader> TextureLoaderSelector::get_loader_from_name(const std::string &file_name) const
+    {
+        return get_loader_from_extension(std::filesystem::path(file_name).extension());
+    }
+
+    std::unique_ptr<ITextureLoader> TextureLoaderSelector::get_loader_from_extension(const std::filesystem::path &ext) const
+    {
+        return std::make_unique<STBTextureLoader>();
+    }
 }

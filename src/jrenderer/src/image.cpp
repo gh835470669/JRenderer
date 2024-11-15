@@ -7,6 +7,17 @@ namespace jre
 {
     Image2D::Image2D(gsl::not_null<const LogicalDevice *> logcial_device, const ImageCreateInfo &image_create_info) : m_logical_device(logcial_device)
     {
+        vk::ImageCreateInfo vk_image_create_info = image_create_info.image_create_info;
+        // auto image_properties = m_logical_device->physical_device()->physical_device().getImageFormatProperties(
+        //     vk_image_create_info.format,
+        //     vk_image_create_info.imageType,
+        //     vk_image_create_info.tiling,
+        //     vk_image_create_info.usage,
+        //     vk_image_create_info.flags);
+        auto format = logcial_device->physical_device()->find_supported_format(
+            {vk::Format::eR8Unorm, vk::Format::eR8G8Unorm, vk::Format::eR8G8B8Unorm, vk::Format::eB8G8R8A8Unorm},
+            vk::ImageTiling::eOptimal,
+            vk::FormatFeatureFlagBits::eSampledImage);
         m_image = m_logical_device->device().createImage(image_create_info.image_create_info);
         vk::MemoryRequirements mem_requirements = m_logical_device->device().getImageMemoryRequirements(m_image);
 

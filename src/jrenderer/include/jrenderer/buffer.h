@@ -58,7 +58,7 @@ namespace jre
         HostVertexBuffer(gsl::not_null<const LogicalDevice *> device, const std::vector<VertexType> &data)
             : HostVisibleBuffer(device, vk::BufferUsageFlagBits::eVertexBuffer, data.size() * sizeof(VertexType), data.data()) {}
 
-        uint32_t count() const { return m_size / sizeof(VertexType); }
+        uint32_t count() const { return static_cast<uint32_t>(m_size / sizeof(VertexType)); }
         void update_buffer(const std::vector<VertexType> &data) { HostVisibleBuffer::update_buffer(data.data(), data.size() * sizeof(VertexType)); }
     };
 
@@ -91,7 +91,24 @@ namespace jre
             : DeviceLocalBuffer(device, command_buffer, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, data.size() * sizeof(IndexType), data.data()) {}
 
         uint32_t count() const { return static_cast<uint32_t>(m_size) / sizeof(IndexType); }
+        vk::IndexType vk_index_type() const { return vk::IndexTypeValue<IndexType>::value; }
         void update_buffer(const std::vector<IndexType> &data) { DeviceLocalBuffer::update_buffer(data.data(), data.size() * sizeof(IndexType)); }
+    };
+
+    template <typename IndexType>
+    class IndexBufferSpan
+    {
+    public:
+        IndexBufferSpan(const IndexBuffer<IndexType> &index_buffer, uint32_t offset, uint32_t count)
+            : m_index_buffer(index_buffer), m_offset(offset), m_count(count) {}
+
+        uint32_t offset() const { return m_offset; }
+        uint32_t count() const { return m_count; }
+
+    private:
+        const IndexBuffer<IndexType> &m_index_buffer;
+        uint32_t m_offset;
+        uint32_t m_count;
     };
 
 }

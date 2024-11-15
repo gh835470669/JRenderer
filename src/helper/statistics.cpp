@@ -24,7 +24,7 @@ namespace jre
             frame_counter.tick();
 
             std::rotate(m_frames.begin(), m_frames.begin() + 1, m_frames.end());
-            float frame_time = frame_counter.fps();
+            float frame_time = static_cast<float>(frame_counter.fps());
             m_frames.back() = frame_time;
             if (frame_time < m_min_fps)
             {
