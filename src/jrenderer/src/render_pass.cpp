@@ -1,8 +1,10 @@
 #include "jrenderer/render_pass.h"
 #include "jrenderer/logical_device.h"
 
-jre::RenderPass::RenderPass(gsl::not_null<const LogicalDevice *> logical_device, vk::Format color_format, vk::Format depth_format) : m_device(logical_device)
+jre::RenderPass::RenderPass(gsl::not_null<const LogicalDevice *> logical_device, vk::Format color_format, vk::Format depth_format, vk::SampleCountFlagBits sample_count) : m_device(logical_device)
 {
+    bool msaa_enabled = sample_count > vk::SampleCountFlagBits::e1;
+
     // https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Render_passes
     // framebuffer attachments
     // how many color and depth buffers there
@@ -11,7 +13,7 @@ jre::RenderPass::RenderPass(gsl::not_null<const LogicalDevice *> logical_device,
 
     vk::AttachmentDescription color_attachment;
     color_attachment.format = color_format;
-    color_attachment.samples = vk::SampleCountFlagBits::e1; // not doing anything with multisampling yet, so we'll stick to 1 sample
+    color_attachment.samples = sample_count;
 
     // The loadOp and storeOp determine what to do with the data in the attachment before rendering and after rendering. We have the following choices for loadOp:
     // VK_ATTACHMENT_LOAD_OP_LOAD: Preserve the existing contents of the attachment
@@ -30,8 +32,8 @@ jre::RenderPass::RenderPass(gsl::not_null<const LogicalDevice *> logical_device,
 
     // Textures and framebuffers in Vulkan are represented by VkImage objects with a certain pixel format, however the layout of the pixels in memory can change based on what you're trying to do with an image.
     // 内存的布局可以优化
-    color_attachment.initialLayout = vk::ImageLayout::eUndefined;   // specifies which layout the image will have before the render pass begins.  we don't care what previous layout the image was in, because color_attachment.loadOp = vk::AttachmentLoadOp::eClear;  clear the framebuffer to black
-    color_attachment.finalLayout = vk::ImageLayout::ePresentSrcKHR; // specifies the layout to automatically transition to when the render pass finishes
+    color_attachment.initialLayout = vk::ImageLayout::eUndefined;                                                             // specifies which layout the image will have before the render pass begins.  we don't care what previous layout the image was in, because color_attachment.loadOp = vk::AttachmentLoadOp::eClear;  clear the framebuffer to black
+    color_attachment.finalLayout = msaa_enabled ? vk::ImageLayout::eColorAttachmentOptimal : vk::ImageLayout::ePresentSrcKHR; // specifies the layout to automatically transition to when the render pass finishes
 
     // [Subpasses]
     // A single render pass can consist of multiple subpasses. Subpasses are subsequent rendering operations that depend on the contents of framebuffers in previous passes, for example a sequence of post-processing effects that are applied one after another. If you group these rendering operations into one render pass, then Vulkan is able to reorder the operations and conserve memory bandwidth for possibly better performance.
@@ -43,7 +45,7 @@ jre::RenderPass::RenderPass(gsl::not_null<const LogicalDevice *> logical_device,
 
     vk::AttachmentDescription depth_attachment;
     depth_attachment.format = depth_format;
-    depth_attachment.samples = vk::SampleCountFlagBits::e1;
+    depth_attachment.samples = sample_count;
     depth_attachment.loadOp = vk::AttachmentLoadOp::eClear;
     depth_attachment.storeOp = vk::AttachmentStoreOp::eDontCare;
     depth_attachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
@@ -55,11 +57,35 @@ jre::RenderPass::RenderPass(gsl::not_null<const LogicalDevice *> logical_device,
     depth_attachment_ref.attachment = 1;
     depth_attachment_ref.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
+    vk::AttachmentDescription color_attachment_resolve;
+    if (msaa_enabled)
+    {
+        color_attachment_resolve.format = color_format;
+        color_attachment_resolve.samples = vk::SampleCountFlagBits::e1;
+        color_attachment_resolve.loadOp = vk::AttachmentLoadOp::eDontCare;
+        color_attachment_resolve.storeOp = vk::AttachmentStoreOp::eStore;
+        color_attachment_resolve.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+        color_attachment_resolve.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+        color_attachment_resolve.initialLayout = vk::ImageLayout::eUndefined;
+        color_attachment_resolve.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+    }
+
+    vk::AttachmentReference color_attachment_resolve_ref;
+    if (msaa_enabled)
+    {
+        color_attachment_resolve_ref.attachment = 2;
+        color_attachment_resolve_ref.layout = vk::ImageLayout::eColorAttachmentOptimal;
+    }
+
     vk::SubpassDescription subpass;
     subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &color_attachment_ref; // The index of the attachment in this array is directly referenced from the fragment shader with the layout(location = 0) out vec4 outColor directive!
     subpass.pDepthStencilAttachment = &depth_attachment_ref;
+    if (msaa_enabled)
+    {
+        subpass.pResolveAttachments = &color_attachment_resolve_ref;
+    }
 
     // The following other types of attachments can be referenced by a subpass:
 
@@ -68,11 +94,18 @@ jre::RenderPass::RenderPass(gsl::not_null<const LogicalDevice *> logical_device,
     // pDepthStencilAttachment: Attachment for depth and stencil data
     // pPreserveAttachments: Attachments that are not used by this subpass, but for which the data must be preserved
 
-    std::array<vk::AttachmentDescription, 2> attachments = {color_attachment, depth_attachment};
+    std::vector<vk::AttachmentDescription> attachments = {color_attachment, depth_attachment};
+    if (msaa_enabled)
+    {
+        attachments.push_back(color_attachment_resolve);
+    }
 
     // [Subpass dependencies]
     // Subpass dependencies control the order in which subpasses are executed.
     // The subpass dependencies control the order in which subpasses are executed.
+    // 如果这个依赖定不好，那就会因为同步等待而浪费性能？！ (下面这两篇问答启蒙了subpass dependency是什么)
+    // https://stackoverflow.com/questions/62371266/why-is-a-single-depth-buffer-sufficient-for-this-vulkan-swapchain-render-loop
+    // https://www.reddit.com/r/vulkan/comments/s80reu/subpass_dependencies_what_are_those_and_why_do_i/
     vk::SubpassDependency dependency;
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;

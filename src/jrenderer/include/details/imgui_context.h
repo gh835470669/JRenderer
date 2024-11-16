@@ -45,6 +45,7 @@ namespace jre
 			~ImguiContext();
 
 			void new_frame();
+			void pre_draw();
 			void draw(const Graphics &graphics, const CommandBuffer &command_buffer) override;
 			void update_buffers();
 			LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) override;

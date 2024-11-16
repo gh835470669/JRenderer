@@ -143,7 +143,8 @@ namespace jre
                     {m_descriptor_set->descriptor_set_layout()},
                     {push_constant_range},
                     false,
-                    true});
+                    true,
+                    graphics.settings().msaa});
 
             // ImGui_ImplVulkan_InitInfo init_info = {};
             // init_info.Instance = graphics.instance()->instance();
@@ -226,12 +227,18 @@ namespace jre
             m_has_new_frame = true;
         }
 
-        void ImguiContext::draw(const Graphics &graphics, const CommandBuffer &command_buffer)
+        void ImguiContext::pre_draw()
         {
             if (!m_has_new_frame)
                 return;
             // Render to generate draw buffers
             ImGui::Render();
+            m_has_new_frame = false;
+        }
+
+        void ImguiContext::draw(const Graphics &graphics, const CommandBuffer &command_buffer)
+        {
+
             ImDrawData *draw_data = ImGui::GetDrawData();
             const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
             if (!is_minimized)
@@ -285,7 +292,6 @@ namespace jre
                 }
                 // ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer.command_buffer());
             }
-            m_has_new_frame = false;
         }
 
         LRESULT ImguiContext::WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)

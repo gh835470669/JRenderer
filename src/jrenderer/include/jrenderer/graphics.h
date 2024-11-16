@@ -24,19 +24,20 @@
 
 namespace jre
 {
-    struct GraphicsSetting
+    struct GraphicsSettings
     {
         std::string app_name = "";
         uint32_t app_version = 1;
         std::string engine_name = "";
         uint32_t engine_version = 1;
-        std::variant<bool, vk::PresentModeKHR> vsync = false; // true : FIFO  false : Mailbox
+        std::variant<bool, vk::PresentModeKHR> vsync = false;       // true : FIFO  false : Mailbox
+        vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e4; // 1 : No MSAA  2 : 2xMSAA  4 : 4xMSAA ... etc 超出GPU支持的值会被截断
     };
 
     class Graphics
     {
     private:
-        GraphicsSetting m_setting;
+        GraphicsSettings m_settings;
 
         gsl::not_null<const Window *> m_window;
         std::unique_ptr<Instance> m_instance;
@@ -45,6 +46,9 @@ namespace jre
         std::unique_ptr<Surface> m_surface;
         std::unique_ptr<SwapChain> m_swap_chain;
 
+        ColorImage2D m_msaa_image;
+
+        // https://stackoverflow.com/questions/62371266/why-is-a-single-depth-buffer-sufficient-for-this-vulkan-swapchain-render-loop
         DepthImage2D m_depth_image;
         RenderPass m_render_pass;
 
@@ -57,9 +61,10 @@ namespace jre
         uint32_t m_current_frame_buffer_index = 0;
 
         void recreate_swapchain();
+        void create_framebuffers();
 
     public:
-        Graphics(gsl::not_null<const Window *> window, const GraphicsSetting &setting = {});
+        Graphics(gsl::not_null<const Window *> window, const GraphicsSettings &setting = {});
         ~Graphics();
 
         inline const Instance *instance() const noexcept { return m_instance.get(); }
@@ -70,7 +75,7 @@ namespace jre
         const DepthImage2D *depth_image() const noexcept { return &m_depth_image; }
         const CommandPool *command_pool() const noexcept { return m_command_pool.get(); }
         const DescriptorPool *descriptor_pool() const noexcept { return m_descriptor_pool.get(); }
-        const GraphicsSetting &setting() const noexcept { return m_setting; }
+        const GraphicsSettings &settings() const noexcept { return m_settings; }
         std::unique_ptr<DescriptorSet> create_descriptor_set(const std::vector<vk::DescriptorSetLayoutBinding> &bindings);
 
         static inline void check(const vk::Result &result) { vk::detail::resultCheck(result, "Graphics::check"); }
@@ -80,7 +85,9 @@ namespace jre
         void draw(std::vector<IRenderSetRenderer *> renderers);
 
         vk::PresentModeKHR present_mode();
-        inline const std::variant<bool, vk::PresentModeKHR> &vsync() const noexcept { return m_setting.vsync; }
+        inline const std::variant<bool, vk::PresentModeKHR> &vsync() const noexcept { return m_settings.vsync; }
         void set_vsync(const std::variant<bool, vk::PresentModeKHR> &vsync);
+
+        bool is_minimized() const;
     };
 }

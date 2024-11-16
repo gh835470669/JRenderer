@@ -40,7 +40,8 @@ namespace jre
                 {model.get_descriptor_set().descriptor_set_layout()},
                 {},
                 true,
-                false});
+                false,
+                m_graphics.settings().msaa});
 
         render_set.render_objects.push_back(model);
         render_set.render_objects.push_back(model2);
@@ -101,7 +102,8 @@ namespace jre
                 {model_lingsha.sub_mesh_materials[0].descriptor_set->descriptor_set_layout()},
                 {},
                 true,
-                false});
+                false,
+                m_graphics.settings().msaa});
         star_rail_char_render_set.render_objects.push_back(model_lingsha);
 
         star_rail_char_render_set_renderer.func_get_viewport = viewport::get_full_viewport;
@@ -126,6 +128,7 @@ namespace jre
         }
         {
             ZoneScoped;
+            m_imgui_context.pre_draw();
             m_graphics.draw(
                 std::vector<IRenderSetRenderer *>{&star_rail_char_render_set_renderer, &m_imgui_context});
         }
@@ -133,9 +136,6 @@ namespace jre
 
     void JRenderer::tick(const TickContext &context)
     {
-
-        if (m_graphics.swap_chain()->extent().width == 0 || m_graphics.swap_chain()->extent().height == 0)
-            return;
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();

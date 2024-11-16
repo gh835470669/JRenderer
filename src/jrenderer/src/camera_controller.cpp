@@ -91,8 +91,9 @@ namespace jre
         if (m_input_map.GetBool(static_cast<UserButtonId>(ButtonCameraControl::RotateMode)))
         {
             // 左上角0, 0 右下角1,1
-            camera_rotate(camera, {-m_input_map.GetFloatDelta(static_cast<UserButtonId>(ButtonCameraControl::RotatePitch)) * context.delta_time * 1000,
-                                   -m_input_map.GetFloatDelta(static_cast<UserButtonId>(ButtonCameraControl::RotateYaw)) * context.delta_time * 1000,
+            static float sensitivity = 2000.0f;
+            camera_rotate(camera, {-m_input_map.GetFloatDelta(static_cast<UserButtonId>(ButtonCameraControl::RotatePitch)) * context.delta_time * sensitivity,
+                                   -m_input_map.GetFloatDelta(static_cast<UserButtonId>(ButtonCameraControl::RotateYaw)) * context.delta_time * sensitivity,
                                    0});
         }
     }

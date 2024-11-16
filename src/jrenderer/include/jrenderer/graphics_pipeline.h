@@ -22,6 +22,7 @@ namespace jre
         const std::vector<vk::PushConstantRange> &push_constant_ranges;
         bool enable_depth_stencil = true;
         std::variant<bool, vk::PipelineColorBlendAttachmentState> alpha_blending = true; // true: alpha blending, false: overwrite
+        vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e1;
     };
 
     class GraphicsPipeline

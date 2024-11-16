@@ -9,9 +9,6 @@ namespace jre
 {
     void StarRailCharRenderSetRenderer::draw(const Graphics &graphics, const CommandBuffer &command_buffer)
     {
-        if (graphics.swap_chain()->extent().width == 0 || graphics.swap_chain()->extent().height == 0)
-            return;
-
         command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline);
 
         command_buffer.command_buffer().setViewport(0, func_get_viewport(graphics.swap_chain()->extent()));

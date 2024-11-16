@@ -14,10 +14,6 @@ namespace jre
         //     vk_image_create_info.tiling,
         //     vk_image_create_info.usage,
         //     vk_image_create_info.flags);
-        auto format = logcial_device->physical_device()->find_supported_format(
-            {vk::Format::eR8Unorm, vk::Format::eR8G8Unorm, vk::Format::eR8G8B8Unorm, vk::Format::eB8G8R8A8Unorm},
-            vk::ImageTiling::eOptimal,
-            vk::FormatFeatureFlagBits::eSampledImage);
         m_image = m_logical_device->device().createImage(image_create_info.image_create_info);
         vk::MemoryRequirements mem_requirements = m_logical_device->device().getImageMemoryRequirements(m_image);
 
@@ -46,6 +42,37 @@ namespace jre
         }
     }
 
+    Image2D::Image2D(Image2D &&other) noexcept
+        : m_logical_device(other.m_logical_device),
+          m_image(std::exchange(other.m_image, VK_NULL_HANDLE)),
+          m_memory(std::exchange(other.m_memory, VK_NULL_HANDLE)),
+          m_image_view(std::exchange(other.m_image_view, VK_NULL_HANDLE)),
+          m_format(std::exchange(other.m_format, vk::Format::eUndefined)),
+          m_image_layout(std::exchange(other.m_image_layout, vk::ImageLayout::eUndefined)),
+          m_extent(std::exchange(other.m_extent, vk::Extent3D())),
+          m_sampler(std::exchange(other.m_sampler, VK_NULL_HANDLE))
+    {
+    }
+
+    void swap(Image2D &left, Image2D &right) noexcept
+    {
+        using std::swap;
+        swap(left.m_logical_device, right.m_logical_device);
+        swap(left.m_image, right.m_image);
+        swap(left.m_memory, right.m_memory);
+        swap(left.m_image_view, right.m_image_view);
+        swap(left.m_format, right.m_format);
+        swap(left.m_image_layout, right.m_image_layout);
+        swap(left.m_extent, right.m_extent);
+        swap(left.m_sampler, right.m_sampler);
+    }
+
+    Image2D &Image2D::operator=(Image2D &&other) noexcept
+    {
+        Image2D tmp(std::move(other));
+        swap(*this, tmp);
+        return *this;
+    }
     Image2D::~Image2D()
     {
         if (m_sampler)
@@ -135,24 +162,44 @@ namespace jre
         command_buffer.end().submit_wait_idle(m_logical_device->graphics_queue());
     }
 
-    DepthImage2D::DepthImage2D(gsl::not_null<const LogicalDevice *> logical_device, const PhysicalDevice &physical_device, uint32_t width, uint32_t height) : Image2D(logical_device,
-                                                                                                                                                                      ImageCreateInfo{
-                                                                                                                                                                          vk::ImageCreateInfo(
-                                                                                                                                                                              vk::ImageCreateFlags(),
-                                                                                                                                                                              vk::ImageType::e2D,
-                                                                                                                                                                              physical_device.find_supported_format(
-                                                                                                                                                                                  {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
-                                                                                                                                                                                  vk::ImageTiling::eOptimal,
-                                                                                                                                                                                  vk::FormatFeatureFlagBits::eDepthStencilAttachment),
-                                                                                                                                                                              {width, height, 1},
-                                                                                                                                                                              1,
-                                                                                                                                                                              1,
-                                                                                                                                                                              vk::SampleCountFlagBits::e1,
-                                                                                                                                                                              vk::ImageTiling::eOptimal,
-                                                                                                                                                                              vk::ImageUsageFlagBits::eDepthStencilAttachment,
-                                                                                                                                                                              vk::SharingMode::eExclusive),
-                                                                                                                                                                          vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1),
-                                                                                                                                                                          {}})
+    DepthImage2D::DepthImage2D(gsl::not_null<const LogicalDevice *> logical_device, const PhysicalDevice &physical_device, DepthImage2DCreateInfo create_info) : Image2D(logical_device,
+                                                                                                                                                                         ImageCreateInfo{
+                                                                                                                                                                             vk::ImageCreateInfo(
+                                                                                                                                                                                 vk::ImageCreateFlags(),
+                                                                                                                                                                                 vk::ImageType::e2D,
+                                                                                                                                                                                 physical_device.find_supported_format(
+                                                                                                                                                                                     {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+                                                                                                                                                                                     vk::ImageTiling::eOptimal,
+                                                                                                                                                                                     vk::FormatFeatureFlagBits::eDepthStencilAttachment),
+                                                                                                                                                                                 {create_info.width, create_info.height, 1},
+                                                                                                                                                                                 1,
+                                                                                                                                                                                 1,
+                                                                                                                                                                                 create_info.sample_count,
+                                                                                                                                                                                 vk::ImageTiling::eOptimal,
+                                                                                                                                                                                 vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                                                                                                                                                                                 vk::SharingMode::eExclusive),
+                                                                                                                                                                             vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1),
+                                                                                                                                                                             {}})
+    {
+    }
+
+    ColorImage2D::ColorImage2D(gsl::not_null<const LogicalDevice *> logical_device, ColorImage2DCreateInfo color_image_2d_create_info)
+        : Image2D(logical_device,
+                  ImageCreateInfo{
+                      vk::ImageCreateInfo(
+                          vk::ImageCreateFlags(),
+                          vk::ImageType::e2D,
+                          color_image_2d_create_info.format,
+                          {color_image_2d_create_info.width, color_image_2d_create_info.height, 1},
+                          1,
+                          1,
+                          color_image_2d_create_info.sample_count,
+                          vk::ImageTiling::eOptimal,
+                          color_image_2d_create_info.usage,
+                          vk::SharingMode::eExclusive),
+                      vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1),
+                      {}})
+
     {
     }
 }

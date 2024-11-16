@@ -65,7 +65,7 @@ namespace jre
         // GPU multisampling： disable
         vk::PipelineMultisampleStateCreateInfo multisampling{};
         multisampling.sampleShadingEnable = VK_FALSE;
-        multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
+        multisampling.rasterizationSamples = create_info.msaa;
         multisampling.minSampleShading = 1.0f;          // Optional
         multisampling.pSampleMask = nullptr;            // Optional
         multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
