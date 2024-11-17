@@ -60,6 +60,11 @@ namespace jre
         return vk::SampleCountFlagBits::e1;
     }
 
+    vk::SampleCountFlags PhysicalDevice::get_supported_sample_counts() const
+    {
+        return m_properties.limits.framebufferColorSampleCounts & m_properties.limits.framebufferDepthSampleCounts;
+    }
+
     std::unique_ptr<LogicalDevice> PhysicalDevice::create_logical_device()
     {
         return std::make_unique<LogicalDevice>(this);

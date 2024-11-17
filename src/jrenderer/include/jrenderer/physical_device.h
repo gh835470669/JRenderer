@@ -33,6 +33,7 @@ namespace jre
         vk::Format find_supported_format(const std::vector<vk::Format> &candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const;
         uint32_t find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties) const;
         vk::SampleCountFlagBits get_max_usable_sample_count() const;
+        vk::SampleCountFlags get_supported_sample_counts() const;
 
         std::unique_ptr<LogicalDevice> create_logical_device();
     };

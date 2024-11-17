@@ -22,6 +22,10 @@ namespace jre
                                                                                                 m_descriptor_pool(std::make_unique<DescriptorPool>(m_logical_device.get(), DescriptorPoolCreateInfo{100, 100}))
     {
         create_framebuffers();
+        for (uint32_t i = 0; i < m_swap_chain->images().size(); ++i)
+        {
+            m_frames.push_back(std::make_unique<Frame>(m_logical_device.get()));
+        }
     };
 
     void Graphics::draw(std::vector<IRenderSetRenderer *> renderers)
@@ -79,6 +83,20 @@ namespace jre
         recreate_swapchain();
     }
 
+    void Graphics::set_msaa(const vk::SampleCountFlagBits &msaa)
+    {
+        if (m_settings.msaa == msaa)
+            return;
+        m_settings.msaa = msaa;
+
+        wait_idle();
+        m_msaa_image = std::move(ColorImage2D(m_logical_device.get(), ColorImage2DCreateInfo{m_swap_chain->extent().width, m_swap_chain->extent().height, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, m_settings.msaa}));
+        m_depth_image = std::move(DepthImage2D(m_logical_device.get(), *m_physical_device, {m_swap_chain->extent().width, m_swap_chain->extent().height, msaa}));
+        m_render_pass = std::move(RenderPass(m_logical_device.get(), m_swap_chain->image_format(), m_depth_image.format(), msaa));
+        m_frame_buffers.clear();
+        create_framebuffers();
+    }
+
     void Graphics::recreate_swapchain()
     {
         wait_idle();
@@ -101,7 +119,6 @@ namespace jre
             {
                 attachments = {m_msaa_image.image_view(), m_depth_image.image_view(), m_swap_chain->image_views()[i]};
             }
-            m_frames.push_back(std::move(std::make_unique<Frame>(m_logical_device.get())));
             m_frame_buffers.push_back(std::move(std::make_unique<FrameBuffer>(m_logical_device.get(), m_render_pass, m_swap_chain->extent(), attachments, std::move(m_command_pool->allocate_command_buffer()))));
         }
     }

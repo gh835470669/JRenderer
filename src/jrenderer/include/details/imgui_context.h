@@ -38,6 +38,8 @@ namespace jre
 				glm::vec2 translate;
 			} push_const_block;
 
+			static PipelineVertexInputState get_vertex_input_state();
+
 			static void SetupImGuiStyle();
 
 		public:
@@ -49,6 +51,8 @@ namespace jre
 			void draw(const Graphics &graphics, const CommandBuffer &command_buffer) override;
 			void update_buffers();
 			LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) override;
+
+			void set_msaa(const vk::SampleCountFlagBits &msaa);
 		};
 	}
 }

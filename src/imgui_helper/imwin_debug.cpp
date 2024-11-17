@@ -3,6 +3,19 @@
 #include <variant>
 #include "jrenderer.h"
 
+ImWinDebug::ImWinDebug(Statistics &stat, jre::JRenderer &renderer)
+    : m_statistics(stat), m_renderer(renderer)
+{
+    vk::SampleCountFlags flags = m_renderer.graphics().physical_device()->get_supported_sample_counts();
+    for (size_t i = 0; i < msaa_modes.size(); ++i)
+    {
+        if (flags & msaa_modes[i])
+        {
+            supported_msaa_modes.push_back(i);
+        }
+    }
+}
+
 void ImWinDebug::tick()
 {
     ZoneScoped;
@@ -27,6 +40,12 @@ void ImWinDebug::tick()
     if (ImGui::Combo("present modes", &item_current, present_modes, IM_ARRAYSIZE(present_modes)))
     {
         m_renderer.graphics().set_vsync(static_cast<vk::PresentModeKHR>(item_current));
+    }
+
+    static int msaa_mode_current = std::distance(msaa_modes.begin(), std::find(msaa_modes.begin(), msaa_modes.end(), m_renderer.graphics().settings().msaa));
+    if (ImGui::Combo("msaa modes", &msaa_mode_current, msaa_mode_names.data(), supported_msaa_modes.size()))
+    {
+        m_renderer.set_msaa(msaa_modes[supported_msaa_modes[msaa_mode_current]]);
     }
 
     camera_info();

@@ -115,6 +115,26 @@ namespace jre
     {
     }
 
+    void JRenderer::set_msaa(const vk::SampleCountFlagBits &msaa)
+    {
+        m_graphics.set_msaa(msaa);
+
+        star_rail_char_render_set.graphics_pipeline = std::make_shared<GraphicsPipeline>(
+            m_graphics.logical_device(),
+            GraphicsPipelineCreateInfo{
+                *m_graphics.render_pass(),
+                std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/star_rail_vert.spv"),
+                std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/star_rail_frag.spv"),
+                PmxVertex::get_pipeline_vertex_input_state(0),
+                {model_lingsha.sub_mesh_materials[0].descriptor_set->descriptor_set_layout()},
+                {},
+                true,
+                false,
+                msaa});
+
+        m_imgui_context.set_msaa(msaa);
+    }
+
     void JRenderer::new_imgui_frame()
     {
         m_imgui_context.new_frame();

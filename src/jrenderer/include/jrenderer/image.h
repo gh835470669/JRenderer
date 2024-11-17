@@ -84,6 +84,14 @@ namespace jre
     {
     public:
         ColorImage2D(gsl::not_null<const LogicalDevice *> logical_device, ColorImage2DCreateInfo color_image_2d_create_info);
+        ColorImage2D(const ColorImage2D &) = delete;                                // non-copyable
+        ColorImage2D &operator=(const ColorImage2D &) = delete;                     // non-copyable
+        ColorImage2D(ColorImage2D &&other) noexcept : Image2D(std::move(other)) {}; // movable
+        ColorImage2D &operator=(ColorImage2D &&other) noexcept
+        {
+            Image2D::operator=(std::move(other));
+            return *this;
+        }; // movable
     };
 
 }

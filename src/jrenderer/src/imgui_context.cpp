@@ -116,20 +116,6 @@ namespace jre
             // Store our identifier
             io.Fonts->SetTexID((ImTextureID)m_descriptor_set->descriptor_set());
 
-            // Vertex bindings an attributes based on ImGui vertex definition
-            vk::VertexInputBindingDescription binding_description{};
-            binding_description.binding = 0;
-            binding_description.stride = sizeof(ImDrawVert);
-            binding_description.inputRate = vk::VertexInputRate::eVertex;
-
-            std::vector<vk::VertexInputAttributeDescription> vertex_input_attributes = {
-                {0, 0, vk::Format::eR32G32Sfloat, offsetof(ImDrawVert, pos)}, // Location 0: Position
-                {1, 0, vk::Format::eR32G32Sfloat, offsetof(ImDrawVert, uv)},  // Location 1: UV
-                {2, 0, vk::Format::eR8G8B8A8Unorm, offsetof(ImDrawVert, col)} // Location 2: Color
-            };
-
-            PipelineVertexInputState vertex_input_state({binding_description}, vertex_input_attributes);
-
             vk::PushConstantRange push_constant_range{vk::ShaderStageFlagBits::eVertex, 0, sizeof(ImDrawVert)};
 
             // Create pipeline layout
@@ -139,7 +125,7 @@ namespace jre
                     *graphics.render_pass(),
                     ui_vert_shader,
                     ui_frag_shader,
-                    vertex_input_state,
+                    get_vertex_input_state(),
                     {m_descriptor_set->descriptor_set_layout()},
                     {push_constant_range},
                     false,
@@ -390,6 +376,38 @@ namespace jre
             style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.0f, 1.0f, 1.0f, 0.699999988079071f);
             style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
             style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.3499999940395355f);
+        }
+
+        PipelineVertexInputState ImguiContext::get_vertex_input_state()
+        {
+            // Vertex bindings an attributes based on ImGui vertex definition
+            vk::VertexInputBindingDescription binding_description{};
+            binding_description.binding = 0;
+            binding_description.stride = sizeof(ImDrawVert);
+            binding_description.inputRate = vk::VertexInputRate::eVertex;
+
+            return {{binding_description}, {
+                                               {0, 0, vk::Format::eR32G32Sfloat, offsetof(ImDrawVert, pos)}, // Location 0: Position
+                                               {1, 0, vk::Format::eR32G32Sfloat, offsetof(ImDrawVert, uv)},  // Location 1: UV
+                                               {2, 0, vk::Format::eR8G8B8A8Unorm, offsetof(ImDrawVert, col)} // Location 2: Color
+                                           }};
+        }
+
+        void ImguiContext::set_msaa(const vk::SampleCountFlagBits &msaa)
+        {
+            vk::PushConstantRange push_constant_range{vk::ShaderStageFlagBits::eVertex, 0, sizeof(ImDrawVert)};
+            m_graphics_pipeline = std::make_shared<GraphicsPipeline>(
+                m_graphics.logical_device(),
+                GraphicsPipelineCreateInfo{
+                    *m_graphics.render_pass(),
+                    ui_vert_shader,
+                    ui_frag_shader,
+                    get_vertex_input_state(),
+                    {m_descriptor_set->descriptor_set_layout()},
+                    {push_constant_range},
+                    false,
+                    true,
+                    m_graphics.settings().msaa});
         }
     }
 }

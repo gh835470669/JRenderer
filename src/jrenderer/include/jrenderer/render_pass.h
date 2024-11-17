@@ -16,6 +16,10 @@ namespace jre
     public:
         RenderPass() = default;
         RenderPass(gsl::not_null<const LogicalDevice *> logical_device, vk::Format color_format, vk::Format depth_format, vk::SampleCountFlagBits sample_count = vk::SampleCountFlagBits::e1);
+        RenderPass(const RenderPass &) = delete;            // non-copyable
+        RenderPass &operator=(const RenderPass &) = delete; // non-copyable
+        RenderPass(RenderPass &&);
+        RenderPass &operator=(RenderPass &&);
         ~RenderPass();
 
         vk::RenderPass render_pass() const { return m_render_pass; }

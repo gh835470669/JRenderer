@@ -53,6 +53,8 @@ namespace jre
         inline InputManager &input_manager() { return m_input_manager; }
         inline Camera &camera() { return m_camera; }
 
+        void set_msaa(const vk::SampleCountFlagBits &msaa);
+
         void new_imgui_frame();
         void new_frame(const TickContext &context);
     };

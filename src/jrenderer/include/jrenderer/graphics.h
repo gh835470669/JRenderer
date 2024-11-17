@@ -31,7 +31,7 @@ namespace jre
         std::string engine_name = "";
         uint32_t engine_version = 1;
         std::variant<bool, vk::PresentModeKHR> vsync = false;       // true : FIFO  false : Mailbox
-        vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e4; // 1 : No MSAA  2 : 2xMSAA  4 : 4xMSAA ... etc 超出GPU支持的值会被截断
+        vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e1; // 1 : No MSAA  2 : 2xMSAA  4 : 4xMSAA ... etc 超出GPU支持的值会被截断
     };
 
     class Graphics
@@ -87,6 +87,7 @@ namespace jre
         vk::PresentModeKHR present_mode();
         inline const std::variant<bool, vk::PresentModeKHR> &vsync() const noexcept { return m_settings.vsync; }
         void set_vsync(const std::variant<bool, vk::PresentModeKHR> &vsync);
+        void set_msaa(const vk::SampleCountFlagBits &msaa);
 
         bool is_minimized() const;
     };
