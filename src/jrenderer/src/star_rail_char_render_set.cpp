@@ -44,7 +44,7 @@ namespace jre
         ubo.model = render_obj.get_model_matrix();
         // ubo.view = glm::lookAt(glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = render_set->view_matrix;
-        ubo.proj = glm::perspective(glm::radians(45.0f), swap_chian.extent().width / (float)swap_chian.extent().height, 0.1f, 50.0f);
+        ubo.proj = glm::perspective(glm::radians(45.0f), swap_chian.extent().width / (float)swap_chian.extent().height, 0.1f, 100.0f);
         ubo.proj[1][1] *= -1;
         for (auto &sub_mesh : render_obj.sub_mesh_materials)
             sub_mesh.uniform_buffer->update_buffer(ubo);
