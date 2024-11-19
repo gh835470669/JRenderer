@@ -63,6 +63,9 @@ set(LIBS
 link_directories("third_party/lib")
 # link_directories("third_party/bin")
 
+
+option(CAPPUCCINO_BUILD_EXAMPLES "Build the examples. Default=OFF" OFF)
+option(CAPPUCCINO_BUILD_TESTS "Build the tests. Default=OFF" OFF)
 FetchContent_Declare(
   cappuccino
   GIT_REPOSITORY https://github.com/jbaldwin/libcappuccino.git

@@ -119,6 +119,7 @@ namespace jre
 
         vk::PipelineVertexInputStateCreateInfo vertex_input_state = create_info.vertex_input_info.pipeline_vertex_input_state();
 
+        // Pipeline State Objects (PSO) in Vulkan
         vk::GraphicsPipelineCreateInfo pipeline_info{};
         pipeline_info.stageCount = static_cast<uint32_t>(shader_stages.size());
         pipeline_info.pStages = shader_stages.data();

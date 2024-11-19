@@ -6,6 +6,9 @@ namespace jre
 
     RenderPass::RenderPass(gsl::not_null<const LogicalDevice *> logical_device, vk::Format color_format, vk::Format depth_format, vk::SampleCountFlagBits sample_count) : m_device(logical_device)
     {
+        // 2 main things:
+        // 1. Attachments Formats (Color and Depth)
+        // 2. Load/Store Operations (LOAD/CLEAR/DONT_CARE)
         bool msaa_enabled = sample_count > vk::SampleCountFlagBits::e1;
 
         // https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Render_passes
