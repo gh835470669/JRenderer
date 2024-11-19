@@ -26,6 +26,7 @@ namespace jre
         {
             m_frames.push_back(std::make_unique<Frame>(m_logical_device.get()));
         }
+        m_current_frame = m_frames.begin();
     };
 
     void Graphics::draw(std::vector<IRenderSetRenderer *> renderers)
@@ -34,9 +35,14 @@ namespace jre
             return;
         try
         {
-            Frame &frame = *m_frames[0];
+            Frame &frame = **m_current_frame;
             check(m_logical_device->device().waitForFences({frame.in_flight_fence()}, true, std::numeric_limits<uint64_t>::max()));
             m_logical_device->device().resetFences({frame.in_flight_fence()});
+            m_current_frame = std::next(m_current_frame);
+            if (m_current_frame == m_frames.end())
+            {
+                m_current_frame = m_frames.begin();
+            }
 
             auto res = m_logical_device->device().acquireNextImageKHR(m_swap_chain->swapchain(), std::numeric_limits<uint64_t>::max(), frame.image_available_semaphore(), nullptr);
             m_current_frame_buffer_index = res.value;

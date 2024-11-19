@@ -56,7 +56,7 @@ namespace jre
         std::unique_ptr<DescriptorPool> m_descriptor_pool;
 
         std::vector<std::unique_ptr<Frame>> m_frames;
-        std::vector<Frame>::iterator m_current_frame;
+        std::vector<std::unique_ptr<Frame>>::iterator m_current_frame;
         std::vector<std::unique_ptr<FrameBuffer>> m_frame_buffers;
         uint32_t m_current_frame_buffer_index = 0;
 
