@@ -57,12 +57,25 @@ namespace jre
         size_t data_size() const override { return m_width * m_height * m_channels; }
     };
 
+    struct Texture2DCreateInfo
+    {
+        const IImageDataView *image_view;
+        bool use_mipmaps = false;
+    };
+
     class Texture2D : public Image2D
     {
+
     public:
-        Texture2D(gsl::not_null<const LogicalDevice *> logical_device, const CommandBuffer &command_buffer, const IImageDataView &image, const ImageCreateInfo *create_info = nullptr);
+        Texture2D(gsl::not_null<const LogicalDevice *> logical_device, const CommandBuffer &command_buffer, const IImageDataView &image, const Image2DCreateInfo *create_info = nullptr);
+        Texture2D(gsl::not_null<const LogicalDevice *> logical_device, const CommandBuffer &command_buffer, const Texture2DCreateInfo &create_info);
 
         vk::DescriptorImageInfo descriptor() const;
+
+        static uint32_t get_mipmap_levels(uint32_t width, uint32_t height);
+
+    private:
+        Texture2D(gsl::not_null<const LogicalDevice *> logical_device, const CommandBuffer &command_buffer, const IImageDataView &image, uint32_t mipmap_levels);
     };
 
     class ITextureLoader
@@ -94,6 +107,7 @@ namespace jre
     public:
         TextureResources(gsl::not_null<const LogicalDevice *> device, std::unique_ptr<const CommandBuffer> default_command_buffer) : m_device(device), m_default_command_buffer(std::move(default_command_buffer)) {}
 
-        std::shared_ptr<Texture2D> get_texture(const std::string &name, const ITextureLoader &loader = STBTextureLoader(), const CommandBuffer *command_buffer = nullptr);
+        void insert(const std::string &name, std::shared_ptr<Texture2D> texture) { m_textures.insert(name, texture); }
+        std::shared_ptr<Texture2D> get(const std::string &name, const ITextureLoader &loader = STBTextureLoader(), const CommandBuffer *command_buffer = nullptr);
     };
 }

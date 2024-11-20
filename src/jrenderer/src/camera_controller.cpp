@@ -21,11 +21,15 @@ namespace jre
         RotateYaw,
         RotatePitch,
 
+        AccelerateMode,
+
         Reset,
     };
 
     CameraController::CameraController(InputManager &input_manager) : m_input_map(input_manager)
     {
+        m_input_map.MapBool(static_cast<UserButtonId>(ButtonCameraControl::AccelerateMode), input_manager.keyboard_device(), gainput::KeyShiftL);
+
         m_input_map.MapBool(static_cast<UserButtonId>(ButtonCameraControl::MoveForward), input_manager.keyboard_device(), gainput::KeyW);
         m_input_map.MapBool(static_cast<UserButtonId>(ButtonCameraControl::MoveBackward), input_manager.keyboard_device(), gainput::KeyS);
         m_input_map.MapBool(static_cast<UserButtonId>(ButtonCameraControl::MoveLeft), input_manager.keyboard_device(), gainput::KeyA);
@@ -53,7 +57,9 @@ namespace jre
             reset_default_camera();
         }
 
-        static float velocity = 10.0f; // 1 per second
+        bool is_accelerate = m_input_map.GetBool(static_cast<UserButtonId>(ButtonCameraControl::AccelerateMode));
+
+        float velocity = is_accelerate ? 50.0f : 10.0f; // 1 per second
         float distance = velocity * context.delta_time;
 
         if (m_input_map.GetBool(static_cast<UserButtonId>(ButtonCameraControl::MoveLeft)))

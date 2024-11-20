@@ -23,9 +23,9 @@ int App::MainLoop()
     while (!exit)
     {
         ZoneScoped;
-        m_renderer.input_manager().input_manager().Update();
+        m_renderer.input_manager.input_manager().Update();
 
-        MSG msg = window.ProcessMessage(std::bind(&gainput::InputManager::HandleMessage, &m_renderer.input_manager().input_manager(), std::placeholders::_1));
+        MSG msg = window.ProcessMessage(std::bind(&gainput::InputManager::HandleMessage, &m_renderer.input_manager.input_manager(), std::placeholders::_1));
         if (msg.message == WM_QUIT)
         {
             exit = true;

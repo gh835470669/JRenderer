@@ -34,6 +34,13 @@ namespace jre
             }
             return m_resources[key];
         }
+
+        void insert(const Key &key, const ValueHandle &value)
+        {
+            std::lock_guard lock(m_mutex);
+            m_resources.emplace(key, value);
+        }
+
         // delete all no other referenced resource (use count == 1)
         void purge()
         {

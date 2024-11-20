@@ -19,6 +19,7 @@ namespace jre
                                                                                                 m_depth_image(m_logical_device.get(), *m_physical_device, {m_swap_chain->extent().width, m_swap_chain->extent().height, m_settings.msaa}),
                                                                                                 m_render_pass(m_logical_device.get(), m_swap_chain->image_format(), m_depth_image.format(), m_settings.msaa),
                                                                                                 m_command_pool(std::make_unique<CommandPool>(m_logical_device.get(), CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_logical_device->graphics_queue_family()))),
+                                                                                                m_transfer_command_pool(std::make_unique<CommandPool>(m_logical_device.get(), CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_logical_device->transfer_queue_family()))),
                                                                                                 m_descriptor_pool(std::make_unique<DescriptorPool>(m_logical_device.get(), DescriptorPoolCreateInfo{100, 100}))
     {
         create_framebuffers();
@@ -38,11 +39,10 @@ namespace jre
             Frame &frame = **m_current_frame;
             check(m_logical_device->device().waitForFences({frame.in_flight_fence()}, true, std::numeric_limits<uint64_t>::max()));
             m_logical_device->device().resetFences({frame.in_flight_fence()});
-            m_current_frame = std::next(m_current_frame);
-            if (m_current_frame == m_frames.end())
-            {
-                m_current_frame = m_frames.begin();
-            }
+
+            auto cyclic_next = [](auto &it, auto &container) mutable
+            { return std::next(it) == container.end() ? it = container.begin() : ++it; };
+            cyclic_next(m_current_frame, m_frames);
 
             auto res = m_logical_device->device().acquireNextImageKHR(m_swap_chain->swapchain(), std::numeric_limits<uint64_t>::max(), frame.image_available_semaphore(), nullptr);
             m_current_frame_buffer_index = res.value;
@@ -140,7 +140,7 @@ namespace jre
         m_logical_device->device().waitIdle();
     }
 
-    std::unique_ptr<DescriptorSet> Graphics::create_descriptor_set(const std::vector<vk::DescriptorSetLayoutBinding> &bindings)
+    std::unique_ptr<DescriptorSet> Graphics::create_descriptor_set(const std::vector<vk::DescriptorSetLayoutBinding> &bindings) const
     {
         return std::make_unique<DescriptorSet>(m_logical_device.get(), m_descriptor_pool.get(),
                                                bindings);

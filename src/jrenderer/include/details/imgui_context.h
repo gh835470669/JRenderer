@@ -22,8 +22,8 @@ namespace jre
 
 			std::shared_ptr<const Texture2D> m_font_texture;
 
-			std::shared_ptr<HostVertexBuffer<ImDrawVert>> m_vertex_buffer;
-			std::shared_ptr<HostIndexBuffer<ImDrawIdx>> m_index_buffer;
+			std::vector<std::shared_ptr<HostVertexBuffer<ImDrawVert>>> m_vertex_buffers;
+			std::vector<std::shared_ptr<HostIndexBuffer<ImDrawIdx>>> m_index_buffers;
 
 			const Graphics &m_graphics;
 			gsl::not_null<const LogicalDevice *> m_device;
@@ -52,7 +52,7 @@ namespace jre
 			void update_buffers();
 			LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) override;
 
-			void set_msaa(const vk::SampleCountFlagBits &msaa);
+			void on_msaa_changed();
 		};
 	}
 }

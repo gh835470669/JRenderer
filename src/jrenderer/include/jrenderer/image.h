@@ -6,7 +6,7 @@
 
 namespace jre
 {
-    struct ImageCreateInfo
+    struct Image2DCreateInfo
     {
         vk::ImageCreateInfo image_create_info;
         vk::ImageSubresourceRange image_subresource_range;
@@ -27,9 +27,10 @@ namespace jre
         vk::ImageLayout m_image_layout;
         vk::Extent3D m_extent;
         vk::Sampler m_sampler;
+        uint32_t m_mipmap_levels;
 
     public:
-        Image2D(gsl::not_null<const LogicalDevice *> logcial_device, const ImageCreateInfo &image_create_info);
+        Image2D(gsl::not_null<const LogicalDevice *> logcial_device, const Image2DCreateInfo &image_create_info);
         Image2D(gsl::not_null<const LogicalDevice *> logcial_device) : m_logical_device(logcial_device), m_image(VK_NULL_HANDLE), m_memory(VK_NULL_HANDLE), m_image_view(VK_NULL_HANDLE), m_format() {};
         Image2D(const Image2D &) = delete;            // non-copyable
         Image2D &operator=(const Image2D &) = delete; // non-copyable
@@ -48,6 +49,7 @@ namespace jre
 
         void transition_image_layout(const CommandBuffer &command_buffer, vk::ImageLayout new_layout);
         void copy_from_buffer(const CommandBuffer &command_buffer, const vk::Buffer &buffer);
+        void generate_mipmaps(const CommandBuffer &command_buffer);
     };
 
     struct DepthImage2DCreateInfo

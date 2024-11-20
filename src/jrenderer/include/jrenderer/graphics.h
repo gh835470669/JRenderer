@@ -53,10 +53,11 @@ namespace jre
         RenderPass m_render_pass;
 
         std::unique_ptr<const CommandPool> m_command_pool;
+        std::unique_ptr<const CommandPool> m_transfer_command_pool;
         std::unique_ptr<DescriptorPool> m_descriptor_pool;
 
         std::vector<std::unique_ptr<Frame>> m_frames;
-        std::vector<std::unique_ptr<Frame>>::iterator m_current_frame;
+        std::vector<std::unique_ptr<Frame>>::const_iterator m_current_frame;
         std::vector<std::unique_ptr<FrameBuffer>> m_frame_buffers;
         uint32_t m_current_frame_buffer_index = 0;
 
@@ -74,9 +75,10 @@ namespace jre
         const SwapChain *swap_chain() const noexcept { return m_swap_chain.get(); }
         const DepthImage2D *depth_image() const noexcept { return &m_depth_image; }
         const CommandPool *command_pool() const noexcept { return m_command_pool.get(); }
+        const CommandPool *transfer_command_pool() const noexcept { return m_transfer_command_pool.get(); }
         const DescriptorPool *descriptor_pool() const noexcept { return m_descriptor_pool.get(); }
         const GraphicsSettings &settings() const noexcept { return m_settings; }
-        std::unique_ptr<DescriptorSet> create_descriptor_set(const std::vector<vk::DescriptorSetLayoutBinding> &bindings);
+        std::unique_ptr<DescriptorSet> create_descriptor_set(const std::vector<vk::DescriptorSetLayoutBinding> &bindings) const;
 
         static inline void check(const vk::Result &result) { vk::detail::resultCheck(result, "Graphics::check"); }
 
@@ -90,5 +92,8 @@ namespace jre
         void set_msaa(const vk::SampleCountFlagBits &msaa);
 
         bool is_minimized() const;
+
+        uint32_t frame_count() const { return static_cast<uint32_t>(m_frames.size()); }
+        uint32_t current_frame() const { return static_cast<uint32_t>(std::distance(m_frames.begin(), m_current_frame)); }
     };
 }

@@ -60,16 +60,13 @@ namespace jre
         command_buffer.begin(vk::CommandBufferUsageFlagBits::eOneTimeSubmit)
             .copy_buffer(src_buffer, dst_buffer, size)
             .end()
-            .submit_wait_idle(device.graphics_queue());
+            .submit_wait_idle(device.transfer_queue());
     }
 
     DeviceLocalBuffer::DeviceLocalBuffer(gsl::not_null<const LogicalDevice *> device, const CommandBuffer &command_buffer, vk::BufferUsageFlags usage, vk::DeviceSize size, const void *data) : Buffer(device, size, usage, vk::MemoryPropertyFlagBits::eDeviceLocal)
     {
         HostVisibleBuffer staging_buffer(device, vk::BufferUsageFlagBits::eTransferSrc, size, data);
-        command_buffer.begin()
-            .copy_buffer(staging_buffer.buffer(), m_buffer, size)
-            .end()
-            .submit_wait_idle(device->graphics_queue());
+        copy_buffer(*device, command_buffer, staging_buffer.buffer(), m_buffer, size);
     }
 
     HostVisibleBuffer::HostVisibleBuffer(gsl::not_null<const LogicalDevice *> device, vk::BufferUsageFlags usage, vk::DeviceSize size) : Buffer(device, size, usage, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent) {}

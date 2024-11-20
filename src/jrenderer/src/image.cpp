@@ -5,7 +5,7 @@
 
 namespace jre
 {
-    Image2D::Image2D(gsl::not_null<const LogicalDevice *> logcial_device, const ImageCreateInfo &image_create_info) : m_logical_device(logcial_device)
+    Image2D::Image2D(gsl::not_null<const LogicalDevice *> logcial_device, const Image2DCreateInfo &image_create_info) : m_logical_device(logcial_device)
     {
         vk::ImageCreateInfo vk_image_create_info = image_create_info.image_create_info;
         // auto image_properties = m_logical_device->physical_device()->physical_device().getImageFormatProperties(
@@ -15,6 +15,7 @@ namespace jre
         //     vk_image_create_info.usage,
         //     vk_image_create_info.flags);
         m_image = m_logical_device->device().createImage(image_create_info.image_create_info);
+        m_mipmap_levels = vk_image_create_info.mipLevels;
         vk::MemoryRequirements mem_requirements = m_logical_device->device().getImageMemoryRequirements(m_image);
 
         vk::MemoryAllocateInfo alloc_info{};
@@ -98,7 +99,7 @@ namespace jre
         barrier.image = m_image;
         barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
         barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.levelCount = m_mipmap_levels;
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = 1;
 
@@ -137,7 +138,7 @@ namespace jre
             .begin()
             .pipelineBarrier(src_stage, dst_stage, dependency_flags, {}, {}, barriers)
             .end()
-            .submit_wait_idle(m_logical_device->graphics_queue());
+            .submit_wait_idle(m_logical_device->transfer_queue());
 
         m_image_layout = new_layout;
     }
@@ -159,11 +160,83 @@ namespace jre
 
         command_buffer.command_buffer().copyBufferToImage(buffer, m_image, m_image_layout, 1, &region);
 
-        command_buffer.end().submit_wait_idle(m_logical_device->graphics_queue());
+        command_buffer.end().submit_wait_idle(m_logical_device->transfer_queue());
+    }
+
+    void Image2D::generate_mipmaps(const CommandBuffer &command_buffer)
+    {
+        if (!(m_logical_device->physical_device()->physical_device().getFormatProperties(m_format).optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear))
+        {
+            throw std::runtime_error("image format does not support linear blitting!");
+        }
+
+        command_buffer.begin();
+
+        vk::ImageMemoryBarrier barrier{};
+        barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+        barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+        barrier.image = m_image;
+        barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+        barrier.subresourceRange.levelCount = 1; // 每次只转1层
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        int32_t mip_width = m_extent.width;
+        int32_t mip_height = m_extent.height;
+
+        for (uint32_t i = 1; i < m_mipmap_levels; ++i)
+        {
+            barrier.subresourceRange.baseMipLevel = i - 1;
+            barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+            barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+            barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+            barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+
+            command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlagBits::eByRegion, {}, {}, barrier);
+
+            vk::ImageBlit blit{};
+            blit.srcOffsets[0] = vk::Offset3D{0, 0, 0};
+            blit.srcOffsets[1] = vk::Offset3D{mip_width, mip_height, 1};
+            blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+            blit.srcSubresource.mipLevel = i - 1;
+            blit.srcSubresource.baseArrayLayer = 0;
+            blit.srcSubresource.layerCount = 1;
+            blit.dstOffsets[0] = vk::Offset3D{0, 0, 0};
+            blit.dstOffsets[1] = vk::Offset3D{std::max<int32_t>(mip_width / 2, 1), std::max<int32_t>(mip_height / 2, 1), 1};
+            blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+            blit.dstSubresource.mipLevel = i;
+            blit.dstSubresource.baseArrayLayer = 0;
+            blit.dstSubresource.layerCount = 1;
+
+            command_buffer.command_buffer().blitImage(m_image, vk::ImageLayout::eTransferSrcOptimal, m_image, vk::ImageLayout::eTransferDstOptimal, 1, &blit, vk::Filter::eLinear);
+
+            barrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
+            barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+            barrier.srcAccessMask = vk::AccessFlagBits::eTransferRead;
+            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+            command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlagBits::eByRegion, {}, {}, barrier);
+
+            if (mip_width > 1)
+                mip_width /= 2;
+            if (mip_height > 1)
+                mip_height /= 2;
+        }
+
+        barrier.subresourceRange.baseMipLevel = m_mipmap_levels - 1;
+        barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+        barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+        barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+        command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlagBits::eByRegion, {}, {}, barrier);
+
+        command_buffer.end();
+        command_buffer.submit_wait_idle(m_logical_device->transfer_queue());
     }
 
     DepthImage2D::DepthImage2D(gsl::not_null<const LogicalDevice *> logical_device, const PhysicalDevice &physical_device, DepthImage2DCreateInfo create_info) : Image2D(logical_device,
-                                                                                                                                                                         ImageCreateInfo{
+                                                                                                                                                                         Image2DCreateInfo{
                                                                                                                                                                              vk::ImageCreateInfo(
                                                                                                                                                                                  vk::ImageCreateFlags(),
                                                                                                                                                                                  vk::ImageType::e2D,
@@ -185,7 +258,7 @@ namespace jre
 
     ColorImage2D::ColorImage2D(gsl::not_null<const LogicalDevice *> logical_device, ColorImage2DCreateInfo color_image_2d_create_info)
         : Image2D(logical_device,
-                  ImageCreateInfo{
+                  Image2DCreateInfo{
                       vk::ImageCreateInfo(
                           vk::ImageCreateFlags(),
                           vk::ImageType::e2D,

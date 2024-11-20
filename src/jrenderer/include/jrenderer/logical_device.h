@@ -13,10 +13,12 @@ namespace jre
   {
   private:
     vk::Device m_device;
-    uint32_t m_graphics_queue_family;
-    uint32_t m_present_queue_family;
+    uint32_t m_graphics_queue_family = -1;
+    uint32_t m_present_queue_family = -1;
+    uint32_t m_transfer_queue_family = -1;
     vk::Queue m_graphics_queue;
     vk::Queue m_present_queue;
+    vk::Queue m_transfer_queue;
     gsl::not_null<const PhysicalDevice *> m_physical_device;
 
   public:
@@ -33,8 +35,10 @@ namespace jre
 
     inline uint32_t graphics_queue_family() const noexcept { return m_graphics_queue_family; }
     inline uint32_t present_queue_family() const noexcept { return m_present_queue_family; }
+    inline uint32_t transfer_queue_family() const noexcept { return m_transfer_queue_family; }
     inline const vk::Queue &graphics_queue() const noexcept { return m_graphics_queue; }
     inline const vk::Queue &present_queue() const noexcept { return m_present_queue; }
+    inline const vk::Queue &transfer_queue() const noexcept { return m_transfer_queue; }
 
     inline const PhysicalDevice *physical_device() const noexcept { return m_physical_device; }
 

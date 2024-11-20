@@ -1,4 +1,3 @@
-#define NOMINMAX
 #include <vulkan/vulkan.hpp>
 #include <imgui/backends/imgui_impl_win32.h>
 #include "details/imgui_context.h"
@@ -40,7 +39,7 @@ namespace jre
             //             io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
             // #endif
 
-            vk::Queue graphics_queue = graphics.logical_device()->graphics_queue();
+            // vk::Queue graphics_queue = graphics.logical_device()->graphics_queue();
             ui_vert_shader = std::make_shared<VertexShader>(graphics.logical_device(), "res/shaders/glsl/imgui/ui.vert.spv");
             ui_frag_shader = std::make_shared<FragmentShader>(graphics.logical_device(), "res/shaders/glsl/imgui/ui.frag.spv");
 
@@ -55,7 +54,7 @@ namespace jre
 
             vk::PhysicalDeviceProperties properties = graphics.physical_device()->properties();
 
-            const ImageCreateInfo image_create_info{
+            const Image2DCreateInfo image_create_info{
                 vk::ImageCreateInfo(
                     vk::ImageCreateFlags(),
                     vk::ImageType::e2D,
@@ -132,6 +131,9 @@ namespace jre
                     true,
                     graphics.settings().msaa});
 
+            m_vertex_buffers.resize(graphics.frame_count());
+            m_index_buffers.resize(graphics.frame_count());
+
             // ImGui_ImplVulkan_InitInfo init_info = {};
             // init_info.Instance = graphics.instance()->instance();
             // init_info.PhysicalDevice = graphics.logical_device()->physical_device()->physical_device();
@@ -153,6 +155,7 @@ namespace jre
 
         void ImguiContext::update_buffers()
         {
+            uint32_t current_frame = m_graphics.current_frame();
             ImDrawData *imDrawData = ImGui::GetDrawData();
 
             // Note: Alignment is done inside buffer creation
@@ -177,23 +180,27 @@ namespace jre
             // Update buffers only if vertex or index count has been changed compared to current buffer size
 
             // Vertex buffer
-            if ((!m_vertex_buffer) || (m_vertex_buffer->count() < imDrawData->TotalVtxCount))
+            if ((!m_vertex_buffers[current_frame]) || (m_vertex_buffers[current_frame]->count() < imDrawData->TotalVtxCount))
             {
-                m_vertex_buffer = std::make_shared<HostVertexBuffer<ImDrawVert>>(m_device, vertices);
+                // vkDestroyBuffer() can't be called on VkBuffer that is currently in use by VkCommandBuffer
+                m_device->device().waitIdle();
+                m_vertex_buffers[current_frame] = std::make_shared<HostVertexBuffer<ImDrawVert>>(m_device, vertices);
             }
             else
             {
-                m_vertex_buffer->update_buffer(vertices);
+                m_vertex_buffers[current_frame]->update_buffer(vertices);
             }
 
             // Index buffer
-            if ((!m_index_buffer) || (m_index_buffer->count() < imDrawData->TotalIdxCount))
+            if ((!m_index_buffers[current_frame]) || (m_index_buffers[current_frame]->count() < imDrawData->TotalIdxCount))
             {
-                m_index_buffer = std::make_shared<HostIndexBuffer<ImDrawIdx>>(m_device, indices);
+                // vkDestroyBuffer() can't be called on VkBuffer that is currently in use by VkCommandBuffer
+                m_device->device().waitIdle();
+                m_index_buffers[current_frame] = std::make_shared<HostIndexBuffer<ImDrawIdx>>(m_device, indices);
             }
             else
             {
-                m_index_buffer->update_buffer(indices);
+                m_index_buffers[current_frame]->update_buffer(indices);
             }
         }
 
@@ -252,11 +259,11 @@ namespace jre
 
                 if (imDrawData->CmdListsCount > 0)
                 {
-
+                    uint32_t current_frame = graphics.current_frame();
                     VkDeviceSize offsets[1] = {0};
                     // vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);
-                    command_buffer.command_buffer().bindVertexBuffers(0, 1, &m_vertex_buffer->buffer(), offsets);
-                    command_buffer.command_buffer().bindIndexBuffer(m_index_buffer->buffer(), 0, vk::IndexType::eUint16);
+                    command_buffer.command_buffer().bindVertexBuffers(0, 1, &m_vertex_buffers[current_frame]->buffer(), offsets);
+                    command_buffer.command_buffer().bindIndexBuffer(m_index_buffers[current_frame]->buffer(), 0, vk::IndexType::eUint16);
 
                     for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
                     {
@@ -393,7 +400,7 @@ namespace jre
                                            }};
         }
 
-        void ImguiContext::set_msaa(const vk::SampleCountFlagBits &msaa)
+        void ImguiContext::on_msaa_changed()
         {
             vk::PushConstantRange push_constant_range{vk::ShaderStageFlagBits::eVertex, 0, sizeof(ImDrawVert)};
             m_graphics_pipeline = std::make_shared<GraphicsPipeline>(

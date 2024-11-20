@@ -9,6 +9,12 @@ namespace jre
         m_device->device().freeCommandBuffers(*m_command_pool, m_command_buffer);
     };
 
+    const CommandBuffer &CommandBuffer::reset() const
+    {
+        m_command_buffer.reset(vk::CommandBufferResetFlags());
+        return *this;
+    }
+
     const CommandBuffer &CommandBuffer::begin(vk::CommandBufferUsageFlags usage_flags) const
     {
         m_command_buffer.begin(vk::CommandBufferBeginInfo{usage_flags});

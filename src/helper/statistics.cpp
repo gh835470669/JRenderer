@@ -16,7 +16,7 @@ namespace jre
         {
             LARGE_INTEGER last_ticks = m_counts;
             QueryPerformanceCounter(&m_counts);
-            m_counts_per_frame.QuadPart = max(m_counts.QuadPart - last_ticks.QuadPart, 1);
+            m_counts_per_frame.QuadPart = std::max<long long>(m_counts.QuadPart - last_ticks.QuadPart, 1);
         }
 
         void FrameCounterGraph::tick()

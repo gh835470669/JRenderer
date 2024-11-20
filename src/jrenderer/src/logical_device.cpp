@@ -3,6 +3,8 @@
 #include "jrenderer/surface.h"
 #include "jrenderer/swap_chain.h"
 #include <gsl/pointers>
+#include <gsl/assert>
+#include <map>
 
 namespace jre
 {
@@ -11,32 +13,51 @@ namespace jre
         auto properties = physical_device->physical_device().getQueueFamilyProperties();
         for (int i = 0; i < properties.size(); i++)
         {
+            if (properties[i].queueFlags & vk::QueueFlagBits::eTransfer)
+            {
+                m_transfer_queue_family = i;
+            }
             if (physical_device->physical_device().getWin32PresentationSupportKHR(i) && properties[i].queueFlags & vk::QueueFlagBits::eGraphics)
             {
                 m_graphics_queue_family = i;
                 m_present_queue_family = i;
-                break;
             }
+
+            if (m_graphics_queue_family != -1 && m_present_queue_family != -1 && m_transfer_queue_family != -1)
+                break;
         }
+
+        Ensures(m_graphics_queue_family != -1 && m_present_queue_family != -1 && m_transfer_queue_family != -1);
+
+        std::map<uint32_t, int> unique_queue_families = {{m_graphics_queue_family, 0}, {m_present_queue_family, 0}, {m_transfer_queue_family, 0}};
+        unique_queue_families[m_graphics_queue_family]++;
+        unique_queue_families[m_present_queue_family]++;
+        unique_queue_families[m_transfer_queue_family]++;
 
         vk::DeviceCreateInfo create_info;
         std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
-        std::array<float, 1> priorities = {1.0f};
-        queue_create_infos.push_back(vk::DeviceQueueCreateInfo()
-                                         .setQueuePriorities(priorities)
-                                         .setQueueCount(1)
-                                         .setQueueFamilyIndex(m_graphics_queue_family));
+        std::vector<std::vector<float>> priorities;
+        for (auto [queue_family, queue_num] : unique_queue_families)
+        {
+            priorities.emplace_back(queue_num, 1.0f);
+            queue_create_infos.push_back(vk::DeviceQueueCreateInfo()
+                                             .setQueuePriorities(priorities.back())
+                                             .setQueueCount(queue_num)
+                                             .setQueueFamilyIndex(queue_family));
+        }
 
         // Create logic device from physical device
         std::array<const char *, 1> extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME}; // swap chain 需要定义extension，否则会段错误，它应该是dll来的
 
         create_info.setQueueCreateInfos(queue_create_infos)
+            .setQueueCreateInfoCount(static_cast<uint32_t>(queue_create_infos.size()))
             .setEnabledExtensionCount(static_cast<uint32_t>(extensions.size()))
             .setPpEnabledExtensionNames(extensions.data());
         m_device = physical_device->physical_device().createDevice(create_info);
 
-        m_graphics_queue = m_device.getQueue(m_graphics_queue_family, 0);
-        m_present_queue = m_device.getQueue(m_present_queue_family, 0);
+        m_graphics_queue = m_device.getQueue(m_graphics_queue_family, --unique_queue_families[m_graphics_queue_family]);
+        m_present_queue = m_device.getQueue(m_present_queue_family, --unique_queue_families[m_present_queue_family]);
+        m_transfer_queue = m_device.getQueue(m_transfer_queue_family, --unique_queue_families[m_transfer_queue_family]);
     }
 
     LogicalDevice::~LogicalDevice()

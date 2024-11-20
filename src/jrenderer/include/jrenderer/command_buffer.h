@@ -25,6 +25,8 @@ namespace jre
         const vk::CommandBuffer &command_buffer() const { return m_command_buffer; }
         operator vk::CommandBuffer() const { return m_command_buffer; }
 
+        const CommandBuffer &reset() const;
+
         const CommandBuffer &begin(vk::CommandBufferUsageFlags usage_flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit) const;
         const CommandBuffer &end() const;
 

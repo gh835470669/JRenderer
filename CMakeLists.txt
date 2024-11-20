@@ -80,9 +80,8 @@ target_include_directories(JRenderer PUBLIC
   "${PROJECT_SOURCE_DIR}/src/jrenderer/include"
 )
 target_link_libraries(JRenderer PUBLIC ${LIBS} JRendererLib fmt::fmt)
-target_compile_definitions(JRenderer PUBLIC TRACY_ENABLE TRACY_HAS_CALLSTACK TRACY_CALLSTACK=20)
-
-
+target_compile_definitions(JRenderer PUBLIC TRACY_ENABLE TRACY_HAS_CALLSTACK TRACY_CALLSTACK=20) # tracy
+target_compile_definitions(JRenderer PUBLIC NOMINMAX) # can use std::max
 if(WIN32)
   # 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 [E:\JRenderer\build\JRenderer.vcxproj]
   # 936 是 GB2312 字符集的代码页。
