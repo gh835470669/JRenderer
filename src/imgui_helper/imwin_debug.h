@@ -18,6 +18,8 @@ private:
 
     std::future<jre::PmxModel> async_load_model;
 
+    std::vector<std::shared_ptr<jre::Texture2DDynamicMipmaps>> async_load_textures;
+
 public:
     ImWinDebug(Statistics &stat, jre::JRenderer &renderer);
     void tick() override;

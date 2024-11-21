@@ -4,6 +4,7 @@
 #include "jrenderer.h"
 #include <fmt/core.h>
 #include "jrenderer/async_helper.hpp"
+#include <ranges>
 
 ImWinDebug::ImWinDebug(Statistics &stat, jre::JRenderer &renderer)
     : m_statistics(stat), m_renderer(renderer)
@@ -16,6 +17,11 @@ ImWinDebug::ImWinDebug(Statistics &stat, jre::JRenderer &renderer)
             supported_msaa_modes.push_back(i);
         }
     }
+
+    auto transform_to_textures = m_renderer.model_lingsha.sub_mesh_materials |
+                                 std::ranges::views::transform([](const auto &material)
+                                                               { return std::dynamic_pointer_cast<jre::Texture2DDynamicMipmaps>(material.textures[0]); });
+    async_load_textures = {transform_to_textures.begin(), transform_to_textures.end()};
 }
 
 void ImWinDebug::tick()
@@ -61,27 +67,18 @@ void ImWinDebug::mimaps()
     ImGui::Checkbox("use mipmaps", &use_mipmaps);
     if (old_use_mipmaps != use_mipmaps)
     {
-        if (async_load_model.valid())
-        {
-            ZoneScoped; // 用std::lauch::async的话，future销毁时也是要等的。避免再开个线程并行不如在这里直接等了。
-            async_load_model.wait();
-        }
-        {
-            // 异步加载
-            ZoneScoped;
-            async_load_model = std::async(std::launch::async,
-                                          [command_buffer = std::move(m_renderer.graphics().transfer_command_pool()->allocate_command_buffer()),
-                                           &graphics = this->m_renderer.graphics()]()
-                                          { return jre::JRenderer::load_lingsha(graphics, *command_buffer, use_mipmaps); });
-        }
-    }
-
-    if (async_load_model.valid() && jre::is_ready(async_load_model))
-    {
-        ZoneScoped;
         m_renderer.graphics().wait_idle();
-        m_renderer.model_lingsha = std::move(async_load_model.get());
-        m_renderer.star_rail_char_render_set.render_objects = {m_renderer.model_lingsha};
+        for (auto &texture : async_load_textures)
+        {
+            texture->set_mipmaps(use_mipmaps);
+        }
+        for (auto &material : m_renderer.model_lingsha.sub_mesh_materials)
+        {
+            std::array<const jre::UniformBuffer<jre::UniformBufferObject> *, 1> uniform_buffers{material.uniform_buffer.get()};
+            material.descriptor_set->update_descriptor_sets(
+                uniform_buffers.begin(),
+                material.textures.begin());
+        }
     }
 }
 

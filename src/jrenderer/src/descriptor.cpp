@@ -61,28 +61,4 @@ namespace jre
         m_device->device().destroyDescriptorSetLayout(m_descriptor_set_layout);
         m_device->device().freeDescriptorSets(*m_descriptor_pool, m_descriptor_set);
     }
-
-    void DescriptorSet::update_descriptor_sets(std::vector<const Texture2D *> images)
-    {
-        auto image_vec_cur = images.begin();
-
-        std::vector<vk::WriteDescriptorSet> descriptor_writes;
-
-        descriptor_writes.reserve(bindings.size());
-        for (size_t i = 0; i < bindings.size(); ++i)
-        {
-            if (bindings[i].descriptorType == vk::DescriptorType::eCombinedImageSampler)
-            {
-                vk::DescriptorImageInfo image_info = (*image_vec_cur)->descriptor();
-                image_vec_cur++;
-                descriptor_writes.emplace_back(m_descriptor_set, static_cast<uint32_t>(i), 0, 1, vk::DescriptorType::eCombinedImageSampler, &image_info);
-            }
-            else
-            {
-                throw std::runtime_error("Unsupported descriptor type");
-            }
-        }
-
-        m_device->device().updateDescriptorSets(descriptor_writes, {});
-    }
 }

@@ -46,6 +46,7 @@ namespace jre
         inline vk::ImageView image_view() const { return m_image_view; }
         inline vk::Format format() const { return m_format; }
         inline vk::Sampler sampler() const { return m_sampler; }
+        inline uint32_t mipmap_levels() const { return m_mipmap_levels; }
 
         void transition_image_layout(const CommandBuffer &command_buffer, vk::ImageLayout new_layout);
         void copy_from_buffer(const CommandBuffer &command_buffer, const vk::Buffer &buffer);

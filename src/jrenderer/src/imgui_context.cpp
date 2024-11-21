@@ -90,10 +90,10 @@ namespace jre
                     vk::BorderColor::eFloatOpaqueWhite,
                     {})};
             std::unique_ptr<const CommandBuffer> command_buffer = graphics.command_pool()->allocate_command_buffer();
-            m_font_texture = std::make_shared<const Texture2D>(graphics.logical_device(),
-                                                               *command_buffer.get(),
-                                                               font_image_data,
-                                                               &image_create_info);
+            m_font_texture = std::make_shared<Texture2D>(graphics.logical_device(),
+                                                         *command_buffer.get(),
+                                                         font_image_data,
+                                                         &image_create_info);
 
             // VkDescriptorPool g_DescriptorPool = VK_NULL_HANDLE;
             // VkDescriptorPoolSize pool_sizes[] =
@@ -110,7 +110,9 @@ namespace jre
             m_descriptor_pool = std::make_unique<DescriptorPool>(graphics.logical_device(), DescriptorPoolCreateInfo{1, 1});
             // vkCreateDescriptorPool(pipeline.device(), &pool_info, nullptr, &g_DescriptorPool);
             m_descriptor_set = graphics.create_descriptor_set({{0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}});
-            m_descriptor_set->update_descriptor_sets({m_font_texture.get()});
+            std::array<std::shared_ptr<Texture2D>, 1> textures{m_font_texture};
+            std::array<const UniformBuffer<UniformBufferObject> *, 0> uniform_buffers{};
+            m_descriptor_set->update_descriptor_sets(uniform_buffers.begin(), textures.begin());
 
             // Store our identifier
             io.Fonts->SetTexID((ImTextureID)m_descriptor_set->descriptor_set());

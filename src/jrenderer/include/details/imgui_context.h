@@ -20,7 +20,7 @@ namespace jre
 			std::shared_ptr<VertexShader> ui_vert_shader;
 			std::shared_ptr<FragmentShader> ui_frag_shader;
 
-			std::shared_ptr<const Texture2D> m_font_texture;
+			std::shared_ptr<Texture2D> m_font_texture;
 
 			std::vector<std::shared_ptr<HostVertexBuffer<ImDrawVert>>> m_vertex_buffers;
 			std::vector<std::shared_ptr<HostIndexBuffer<ImDrawIdx>>> m_index_buffers;
