@@ -24,24 +24,31 @@
 
 namespace jre
 {
+
     struct GraphicsSettings
     {
-        std::string app_name = "";
-        uint32_t app_version = 1;
-        std::string engine_name = "";
-        uint32_t engine_version = 1;
-        std::variant<bool, vk::PresentModeKHR> vsync = false;       // true : FIFO  false : Mailbox
-        vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e1; // 1 : No MSAA  2 : 2xMSAA  4 : 4xMSAA ... etc 超出GPU支持的值会被截断
+        struct InstanceSettings
+        {
+            std::string app_name = "";
+            uint32_t app_version = 1;
+            std::string engine_name = "";
+            uint32_t engine_version = 1;
+        };
+
+        InstanceSettings instance_settings;
+        std::variant<bool, vk::PresentModeKHR> vsync = false;        // true : FIFO  false : Mailbox
+        vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e16; // 1 : No MSAA  2 : 2xMSAA  4 : 4xMSAA ... etc 超出GPU支持的值会被截断
     };
 
     class Graphics
     {
     private:
-        GraphicsSettings m_settings;
-
         gsl::not_null<const Window *> m_window;
         std::unique_ptr<Instance> m_instance;
         std::unique_ptr<PhysicalDevice> m_physical_device;
+
+        GraphicsSettings m_settings;
+
         std::unique_ptr<LogicalDevice> m_logical_device;
         std::unique_ptr<Surface> m_surface;
         std::unique_ptr<SwapChain> m_swap_chain;
@@ -61,11 +68,15 @@ namespace jre
         std::vector<std::unique_ptr<FrameBuffer>> m_frame_buffers;
         uint32_t m_current_frame_buffer_index = 0;
 
+        static GraphicsSettings correct_settings(const GraphicsSettings &setting, const PhysicalDevice &physical_device);
+        Graphics(gsl::not_null<const Window *> window, const GraphicsSettings::InstanceSettings &instance_settings, const GraphicsSettings &settings);
+
         void recreate_swapchain();
         void create_framebuffers();
 
     public:
-        Graphics(gsl::not_null<const Window *> window, const GraphicsSettings &setting = {});
+        Graphics(gsl::not_null<const Window *> window, const GraphicsSettings &settings = {})
+            : Graphics(window, settings.instance_settings, settings) {}
         ~Graphics();
 
         inline const Instance *instance() const noexcept { return m_instance.get(); }

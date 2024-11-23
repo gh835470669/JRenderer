@@ -1,26 +1,30 @@
 #include "jrenderer/graphics.h"
 #include "jrenderer/render_set.h"
+#include <fmt/core.h>
 
 namespace jre
 {
 
-    Graphics::Graphics(gsl::not_null<const Window *> window, const GraphicsSettings &setting) : m_settings(setting),
-                                                                                                m_window(window),
-                                                                                                m_instance(std::make_unique<Instance>(InstanceCreateInfo{m_settings.app_name,
-                                                                                                                                                         m_settings.app_version,
-                                                                                                                                                         m_settings.engine_name,
-                                                                                                                                                         m_settings.engine_version})),
-                                                                                                m_physical_device(m_instance->create_first_physical_device()),
-                                                                                                m_logical_device(m_physical_device->create_logical_device()),
-                                                                                                m_surface(m_instance->create_surface(m_physical_device.get(), window->hinstance(), window->hwnd())),
-                                                                                                m_swap_chain(std::move(m_logical_device->create_swapchain(*m_surface, nullptr,
-                                                                                                                                                          SwapChainCreateInfo{window->size().x, window->size().y, setting.vsync}))),
-                                                                                                m_msaa_image(m_logical_device.get(), ColorImage2DCreateInfo{m_swap_chain->extent().width, m_swap_chain->extent().height, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, m_settings.msaa}),
-                                                                                                m_depth_image(m_logical_device.get(), *m_physical_device, {m_swap_chain->extent().width, m_swap_chain->extent().height, m_settings.msaa}),
-                                                                                                m_render_pass(m_logical_device.get(), m_swap_chain->image_format(), m_depth_image.format(), m_settings.msaa),
-                                                                                                m_command_pool(std::make_unique<CommandPool>(m_logical_device.get(), CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_logical_device->graphics_queue_family()))),
-                                                                                                m_transfer_command_pool(std::make_unique<CommandPool>(m_logical_device.get(), CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_logical_device->transfer_queue_family()))),
-                                                                                                m_descriptor_pool(std::make_unique<DescriptorPool>(m_logical_device.get(), DescriptorPoolCreateInfo{100, 100}))
+    Graphics::Graphics(gsl::not_null<const Window *> window,
+                       const GraphicsSettings::InstanceSettings &instance_settings,
+                       const GraphicsSettings &settings)
+        : m_window(window),
+          m_instance(std::make_unique<Instance>(InstanceCreateInfo{instance_settings.app_name,
+                                                                   instance_settings.app_version,
+                                                                   instance_settings.engine_name,
+                                                                   instance_settings.engine_version})),
+          m_physical_device(m_instance->create_first_physical_device()),
+          m_settings(correct_settings(settings, *m_physical_device)),
+          m_logical_device(m_physical_device->create_logical_device()),
+          m_surface(m_instance->create_surface(m_physical_device.get(), window->hinstance(), window->hwnd())),
+          m_swap_chain(std::move(m_logical_device->create_swapchain(*m_surface, nullptr,
+                                                                    SwapChainCreateInfo{window->size().x, window->size().y, m_settings.vsync}))),
+          m_msaa_image(m_logical_device.get(), ColorImage2DCreateInfo{m_swap_chain->extent().width, m_swap_chain->extent().height, vk::ImageUsageFlagBits::eTransientAttachment | vk::ImageUsageFlagBits::eColorAttachment, m_settings.msaa}),
+          m_depth_image(m_logical_device.get(), *m_physical_device, {m_swap_chain->extent().width, m_swap_chain->extent().height, m_settings.msaa}),
+          m_render_pass(m_logical_device.get(), m_swap_chain->image_format(), m_depth_image.format(), m_settings.msaa),
+          m_command_pool(std::make_unique<CommandPool>(m_logical_device.get(), CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_logical_device->graphics_queue_family()))),
+          m_transfer_command_pool(std::make_unique<CommandPool>(m_logical_device.get(), CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_logical_device->transfer_queue_family()))),
+          m_descriptor_pool(std::make_unique<DescriptorPool>(m_logical_device.get(), DescriptorPoolCreateInfo{100, 100}))
     {
         create_framebuffers();
         for (uint32_t i = 0; i < m_swap_chain->images().size(); ++i)
@@ -30,6 +34,14 @@ namespace jre
         m_current_frame = m_frames.begin();
     };
 
+    GraphicsSettings Graphics::correct_settings(const GraphicsSettings &origin_settings, const PhysicalDevice &physical_device)
+    {
+        GraphicsSettings settings = origin_settings;
+        vk::SampleCountFlagBits max_msaa = physical_device.get_max_usable_sample_count();
+        settings.msaa = std::min(settings.msaa, max_msaa);
+        fmt::print("wanted msaa: {}, cur msaa: {} (if not the same, GPU not support)\n", static_cast<int>(origin_settings.msaa), static_cast<int>(settings.msaa));
+        return settings;
+    }
     void Graphics::draw(std::vector<IRenderSetRenderer *> renderers)
     {
         if (is_minimized()) // 这是最舒服的写法了，当最小化的时候会让swapchian长宽为0，其他地方会报错，否则就得到处判断。这个对性能的影响我看不大就这样吧。
