@@ -17,15 +17,15 @@ namespace jre
             {
             case ModelPart::Body:
                 command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_body);
-                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_body->pipeline_layout(), 0, render_set->descriptor_set->descriptor_set(), nullptr);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_body->pipeline_layout(), static_cast<int>(UniformBufferSetIndex::ePerRenderSet), render_set->descriptor_set->descriptor_set(), nullptr);
                 break;
             case ModelPart::Face:
                 command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_face);
-                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_face->pipeline_layout(), 0, render_set->descriptor_set->descriptor_set(), nullptr);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_face->pipeline_layout(), static_cast<int>(UniformBufferSetIndex::ePerRenderSet), render_set->descriptor_set->descriptor_set(), nullptr);
                 break;
             case ModelPart::Hair:
                 command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_hair);
-                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_hair->pipeline_layout(), 0, render_set->descriptor_set->descriptor_set(), nullptr);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_hair->pipeline_layout(), static_cast<int>(UniformBufferSetIndex::ePerRenderSet), render_set->descriptor_set->descriptor_set(), nullptr);
                 break;
             default:
                 throw std::runtime_error("Unknown model part");
@@ -54,7 +54,7 @@ namespace jre
                 const PmxSubMesh &sub_mesh = render_obj.get().mesh->sub_meshes()[i];
                 const PmxMaterial &material = render_obj.get().sub_mesh_materials[i];
                 command_buffer.command_buffer().bindIndexBuffer(render_obj.get().mesh->index_buffer().buffer(), sub_mesh.index_buffer().offset(), render_obj.get().mesh->index_buffer().vk_index_type());
-                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->get_graphics_pipeline(render_obj.get().model_parts[i])->pipeline_layout(), 1, material.descriptor_set->descriptor_set(), nullptr);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->get_graphics_pipeline(render_obj.get().model_parts[i])->pipeline_layout(), static_cast<int>(UniformBufferSetIndex::ePerObject), material.descriptor_set->descriptor_set(), nullptr);
                 bind_pipeline_trigger.set_value(render_obj.get().model_parts[i]); // 如果值不一样，则触发绑定pipeline
                 command_buffer.command_buffer().drawIndexed(sub_mesh.index_buffer().count(), 1, 0, 0, 0);
             }

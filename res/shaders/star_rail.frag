@@ -46,7 +46,7 @@ vec3 get_ramp_diffuse(
     float ramp_cool_or_warm,
     vec4 light_map)
 {
-    float region_id = floor(8 * light_map.a);;  // [0, 1] -> [0, 1, 2, ... , 8]
+    float region_id = floor(8 * light_map.a);  // [0, 1] -> [0, 1, 2, ... , 8]
     float ramp_id = (region_id * 2.0f + 1.0f) * 0.0625f;  // [0, 1, 2, ... , 8] -> [0.0625, 0.125, ... , 1]
     float shadow_area = shadow_rate(ndotl, light_map.g, ramp_cool_or_warm);
     vec2 ramp_uv = {shadow_area, ramp_id};
@@ -64,13 +64,17 @@ void main() {
 
     // diffuse color
     vec3 base_color = texture(main_tex_sampler, in_tex_coord).rgb;
-    vec3 ramp_color = vec3(1.0f);
     vec4 light_map = vec4(1.0f);
     if (!c_is_face)
     {
         light_map = texture(light_map_sampler, in_tex_coord);
-        ramp_color = get_ramp_diffuse(ndotl, 1.0f, light_map);
     }
+    else
+    {
+        light_map = vec4(1.0f, 1.0f, 1.0f, 0.0f);
+        
+    }
+    vec3 ramp_color = get_ramp_diffuse(ndotl, 1.0f, light_map);
     vec3 light_color = ubo_per_render_set.light.color.rgb * ubo_per_render_set.light.color.w;
     vec3 diffuse_color = base_color * ramp_color * light_color;
     out_color = vec4(diffuse_color, 1.0f);

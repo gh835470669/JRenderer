@@ -19,15 +19,15 @@ namespace jre
         input_manager.input_manager().SetDisplaySize(m_window.width(), m_window.height());
 
         camera_controller.default_camera = camera_init();
-        camera_controller.default_camera.target_position = {0.0f, 15.0f, -40.0f};
-        auto orient = glm::quat(glm::vec3(0, -glm::pi<float>(), 0));
+        camera_controller.default_camera.target_position = {0.0f, 15.0f, 40.0f};
+        auto orient = glm::quat(glm::vec3(0, 0, 0));
         camera_controller.default_camera.orientation = {orient.x, orient.y, orient.z, orient.w};
         camera_controller.camera = &camera;
         camera_controller.reset_default_camera();
 
         model_lingsha = std::move(load_lingsha<Texture2DDynamicMipmaps>(m_graphics,
                                                                         *m_graphics.command_pool()->allocate_command_buffer(), star_rail_char_render_set.ubo.descriptor(), true));
-
+        model_lingsha.model_matrix = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         star_rail_char_render_set.render_objects.push_back(model_lingsha);
         star_rail_char_render_set.descriptor_set = m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}});
         star_rail_char_render_set.descriptor_set->update_descriptor_sets({star_rail_char_render_set.ubo.descriptor()});
@@ -82,7 +82,7 @@ namespace jre
                 false,
                 m_graphics.settings().msaa,
                 SpecializationConstants({{0, bytes(ModelPart::Face)}})});
-        star_rail_char_render_set.main_light.set_direction(glm::vec3(0.0f, -1.0f, 1.0f));
+        star_rail_char_render_set.main_light.set_direction(glm::vec3(1.0f, -1.0f, -1.0f));
 
         star_rail_char_render_set_renderer.func_get_viewport = viewport::get_full_viewport;
         star_rail_char_render_set_renderer.func_get_scissor = scissor::get_full_scissor;
