@@ -4,6 +4,7 @@
 #include "jrenderer/graphics.h"
 #include "jrenderer/mesh.h"
 #include "jrenderer/descriptor.h"
+#include "jrenderer/concrete_uniform_buffers.h"
 
 namespace jre
 {
@@ -45,12 +46,13 @@ namespace jre
 
     void DefaultRenderSetRenderer::update_uniform_buffer(const SwapChain &swap_chian, IRenderSetObject<> &render_obj) const
     {
-        UniformBufferObject ubo{};
+        UniformPerObject ubo_per_obj{};
+        UniformMVP &ubo = ubo_per_obj.mvp;
         ubo.model = render_obj.get_model_matrix();
         // ubo.view = glm::lookAt(glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = render_set->view_matrix;
         ubo.proj = glm::perspective(glm::radians(45.0f), swap_chian.extent().width / (float)swap_chian.extent().height, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
-        render_obj.get_uniform_buffer().update_buffer(ubo);
+        render_obj.get_uniform_buffer().update(ubo_per_obj);
     }
 }

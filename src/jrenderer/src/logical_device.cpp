@@ -11,23 +11,27 @@ namespace jre
     LogicalDevice::LogicalDevice(gsl::not_null<const PhysicalDevice *> physical_device) : m_physical_device(physical_device)
     {
         auto properties = physical_device->physical_device().getQueueFamilyProperties();
+        bool found_graphics = false;
+        bool found_present = false;
+        bool found_transfer = false;
         for (int i = 0; i < properties.size(); i++)
         {
             if (properties[i].queueFlags & vk::QueueFlagBits::eTransfer)
             {
                 m_transfer_queue_family = i;
+                found_transfer = true;
             }
             if (physical_device->physical_device().getWin32PresentationSupportKHR(i) && properties[i].queueFlags & vk::QueueFlagBits::eGraphics)
             {
                 m_graphics_queue_family = i;
                 m_present_queue_family = i;
+                found_present = true;
+                found_graphics = true;
             }
 
-            if (m_graphics_queue_family != -1 && m_present_queue_family != -1 && m_transfer_queue_family != -1)
+            if (found_graphics && found_present && found_transfer)
                 break;
         }
-
-        Ensures(m_graphics_queue_family != -1 && m_present_queue_family != -1 && m_transfer_queue_family != -1);
 
         std::map<uint32_t, int> unique_queue_families = {{m_graphics_queue_family, 0}, {m_present_queue_family, 0}, {m_transfer_queue_family, 0}};
         unique_queue_families[m_graphics_queue_family]++;

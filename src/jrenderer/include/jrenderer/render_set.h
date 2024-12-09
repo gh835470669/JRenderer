@@ -3,7 +3,8 @@
 #include <vulkan/vulkan.hpp>
 #include <functional>
 #include "jrenderer/mesh.h"
-#include "jrenderer/uniform_buffer.h"
+#include "jrenderer/uniform_buffer.hpp"
+#include "jrenderer/concrete_uniform_buffers.h"
 
 namespace jre
 {
@@ -28,7 +29,7 @@ namespace jre
         virtual std::shared_ptr<const Mesh<VertexType, IndexType>> get_mesh() const = 0;
         virtual glm::mat4 get_model_matrix() const = 0;
         virtual const DescriptorSet &get_descriptor_set() const = 0;
-        virtual UniformBuffer<UniformBufferObject> &get_uniform_buffer() = 0;
+        virtual UniformBuffer<UniformPerObject> &get_uniform_buffer() = 0;
         virtual ~IRenderSetObject() = default;
     };
 

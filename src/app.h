@@ -21,7 +21,7 @@ public:
 
     jre::Window window;
 
-    int MainLoop();
+    int main_loop();
 
 private:
     jre::JRenderer m_renderer;

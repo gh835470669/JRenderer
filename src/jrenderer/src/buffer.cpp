@@ -46,7 +46,7 @@ namespace jre
         return *this;
     }
 
-    Buffer &Buffer::update_buffer(const void *data, vk::DeviceSize size)
+    Buffer &Buffer::update(const void *data, vk::DeviceSize size)
     {
         map_memory(size);
         memcpy(m_mapped_memory, data, size);
@@ -73,6 +73,6 @@ namespace jre
 
     HostVisibleBuffer::HostVisibleBuffer(gsl::not_null<const LogicalDevice *> device, vk::BufferUsageFlags usage, vk::DeviceSize size, const void *data) : Buffer(device, size, usage, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
     {
-        update_buffer(data, size);
+        update(data, size);
     }
 }

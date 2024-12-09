@@ -3,7 +3,8 @@
 #include "jrenderer/mesh.h"
 #include "jrenderer/texture.h"
 #include "jrenderer/render_set.h"
-#include "jrenderer/uniform_buffer.h"
+#include "jrenderer/uniform_buffer.hpp"
+#include "jrenderer/concrete_uniform_buffers.h"
 #include <glm/glm.hpp>
 
 namespace jre
@@ -16,9 +17,9 @@ namespace jre
         std::shared_ptr<const DefaultMesh> mesh;
         std::shared_ptr<const Texture2D> texture;
         std::unique_ptr<DescriptorSet> descriptor_set;
-        std::unique_ptr<UniformBuffer<UniformBufferObject>> uniform_buffer;
+        std::unique_ptr<UniformBuffer<UniformPerObject>> uniform_buffer;
 
-        Model(std::shared_ptr<const DefaultMesh> mesh, std::shared_ptr<const Texture2D> texture, std::unique_ptr<DescriptorSet> descriptor_set, std::unique_ptr<UniformBuffer<UniformBufferObject>> uniform_buffer)
+        Model(std::shared_ptr<const DefaultMesh> mesh, std::shared_ptr<const Texture2D> texture, std::unique_ptr<DescriptorSet> descriptor_set, std::unique_ptr<UniformBuffer<UniformPerObject>> uniform_buffer)
             : mesh(mesh), texture(texture), descriptor_set(std::move(descriptor_set)), uniform_buffer(std::move(uniform_buffer)) {}
         Model(const Model &) = default;
         Model &operator=(const Model &) = default;
@@ -29,6 +30,6 @@ namespace jre
         std::shared_ptr<const DefaultMesh> get_mesh() const override { return mesh; }
         glm::mat4 get_model_matrix() const override { return model_matrix; }
         const DescriptorSet &get_descriptor_set() const override { return *descriptor_set; }
-        UniformBuffer<UniformBufferObject> &get_uniform_buffer() override { return *uniform_buffer; }
+        UniformBuffer<UniformPerObject> &get_uniform_buffer() override { return *uniform_buffer; }
     };
 }

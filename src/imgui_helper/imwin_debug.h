@@ -26,4 +26,5 @@ public:
 
     void camera_info();
     void mimaps();
+    void shader_properties();
 };

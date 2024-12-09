@@ -1,15 +1,20 @@
 
 #version 450
 
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec2 inTexCoord;
+layout(location = 0) in vec3 in_position_os;
+layout(location = 1) in vec3 in_normal_os;
+layout(location = 2) in vec2 in_tex_coord;
 
-layout(binding = 0) uniform UniformBufferObject {
+struct MVP
+{
     mat4 model;
     mat4 view;
     mat4 proj;
-} ubo;
+};
+
+layout(set = 1, binding = 0) uniform UniformPerObject {
+    MVP mvp;
+} ubo_per_obj;
 
 // Vectors
 // Each of the scalar types, including booleans, have 2, 3, and 4-component vector equivalents. The n digit below can be 2, 3, or 4:
@@ -24,10 +29,17 @@ layout(binding = 0) uniform UniformBufferObject {
 // layout(location = 2) in vec3 inColor;
 
 // layout(location = 0) out vec3 fragColor;
-layout(location = 0) out vec2 fragTexCoord;
+layout(location = 0) out vec2 out_tex_coord;
+layout(location = 1) out vec3 out_normal_ws;
+
+// 
+vec3 transform_direction_os2ws(vec3 normal_os, mat4 model)
+{
+    return mat3(model) * normal_os;  // assume_uniform_scaling
+}
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
-    // fragColor = inColor;
-    fragTexCoord = inTexCoord;
+    gl_Position = ubo_per_obj.mvp.proj * ubo_per_obj.mvp.view * ubo_per_obj.mvp.model * vec4(in_position_os, 1.0);
+    out_tex_coord = in_tex_coord;
+    out_normal_ws = normalize(transform_direction_os2ws(in_normal_os, ubo_per_obj.mvp.model));
 }

@@ -31,7 +31,7 @@ namespace jre
 
         Buffer &map_memory(vk::DeviceSize size);
         Buffer &unmap_memory();
-        Buffer &update_buffer(const void *data, vk::DeviceSize size);
+        Buffer &update(const void *data, vk::DeviceSize size);
 
         static void copy_buffer(const LogicalDevice &device, const CommandBuffer &command_buffer, vk::Buffer src_buffer, vk::Buffer dst_buffer, vk::DeviceSize size);
     };
@@ -59,7 +59,7 @@ namespace jre
             : HostVisibleBuffer(device, vk::BufferUsageFlagBits::eVertexBuffer, data.size() * sizeof(VertexType), data.data()) {}
 
         uint32_t count() const { return static_cast<uint32_t>(m_size / sizeof(VertexType)); }
-        void update_buffer(const std::vector<VertexType> &data) { HostVisibleBuffer::update_buffer(data.data(), data.size() * sizeof(VertexType)); }
+        void update(const std::vector<VertexType> &data) { HostVisibleBuffer::update(data.data(), data.size() * sizeof(VertexType)); }
     };
 
     template <typename VertexType>
@@ -80,7 +80,7 @@ namespace jre
             : HostVisibleBuffer(device, vk::BufferUsageFlagBits::eIndexBuffer, data.size() * sizeof(IndexType), data.data()) {}
 
         uint32_t count() const { return static_cast<uint32_t>(m_size) / sizeof(IndexType); }
-        void update_buffer(const std::vector<IndexType> &data) { HostVisibleBuffer::update_buffer(data.data(), data.size() * sizeof(IndexType)); }
+        void update(const std::vector<IndexType> &data) { HostVisibleBuffer::update(data.data(), data.size() * sizeof(IndexType)); }
     };
 
     template <typename IndexType>
@@ -92,7 +92,7 @@ namespace jre
 
         uint32_t count() const { return static_cast<uint32_t>(m_size) / sizeof(IndexType); }
         vk::IndexType vk_index_type() const { return vk::IndexTypeValue<IndexType>::value; }
-        void update_buffer(const std::vector<IndexType> &data) { DeviceLocalBuffer::update_buffer(data.data(), data.size() * sizeof(IndexType)); }
+        void update(const std::vector<IndexType> &data) { DeviceLocalBuffer::update(data.data(), data.size() * sizeof(IndexType)); }
     };
 
     template <typename IndexType>

@@ -6,5 +6,5 @@ int WinMain(HINSTANCE hinst,
             int show)
 {
     App app(hinst, hprev, cmdline, show);
-    return app.MainLoop();
+    return app.main_loop();
 }

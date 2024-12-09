@@ -4,7 +4,10 @@
 #include "jrenderer.h"
 #include <fmt/core.h>
 #include "jrenderer/async_helper.hpp"
+#include "jrenderer/concrete_uniform_buffers.h"
 #include <ranges>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 ImWinDebug::ImWinDebug(Statistics &stat, jre::JRenderer &renderer)
     : m_statistics(stat), m_renderer(renderer)
@@ -20,8 +23,15 @@ ImWinDebug::ImWinDebug(Statistics &stat, jre::JRenderer &renderer)
 
     auto transform_to_textures = m_renderer.model_lingsha.sub_mesh_materials |
                                  std::ranges::views::transform([](const auto &material)
-                                                               { return std::dynamic_pointer_cast<jre::Texture2DDynamicMipmaps>(material.textures[0]); });
-    async_load_textures = {transform_to_textures.begin(), transform_to_textures.end()};
+                                                               { return material.textures; }) |
+                                 std::ranges::views::join |
+                                 std::ranges::views::transform([](const auto &texture) -> std::shared_ptr<jre::Texture2DDynamicMipmaps>
+                                                               { return std::dynamic_pointer_cast<jre::Texture2DDynamicMipmaps>(texture); }) |
+                                 std::ranges::views::filter([](const auto &texture)
+                                                            { return texture != nullptr; });
+    async_load_textures.reserve(std::ranges::distance(transform_to_textures));
+    for (const auto &texture : transform_to_textures)
+        async_load_textures.push_back(texture);
 }
 
 void ImWinDebug::tick()
@@ -58,6 +68,7 @@ void ImWinDebug::tick()
 
     mimaps();
     camera_info();
+    shader_properties();
 }
 
 void ImWinDebug::mimaps()
@@ -74,10 +85,14 @@ void ImWinDebug::mimaps()
         }
         for (auto &material : m_renderer.model_lingsha.sub_mesh_materials)
         {
-            std::array<const jre::UniformBuffer<jre::UniformBufferObject> *, 1> uniform_buffers{material.uniform_buffer.get()};
             material.descriptor_set->update_descriptor_sets(
-                uniform_buffers.begin(),
-                material.textures.begin());
+                {
+                    material.uniform_buffer->descriptor(),
+                    material.textures[0]->descriptor(),
+                    material.textures[1]->descriptor(),
+                    material.textures[2]->descriptor(),
+                    material.textures[3]->descriptor(),
+                });
         }
     }
 }
@@ -93,5 +108,26 @@ void ImWinDebug::camera_info()
         glm::vec3 orient_eular = glm::eulerAngles(glm::quat{camera.orientation.w, camera.orientation.x, camera.orientation.y, camera.orientation.z});
         orient_eular = glm::degrees(orient_eular);
         ImGui::Text("orientation: %f, %f, %f", orient_eular.x, orient_eular.y, orient_eular.z);
+    }
+}
+
+void ImWinDebug::shader_properties()
+{
+    if (ImGui::CollapsingHeader("Shader Properties", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        jre::PmxUniformPerRenderSet &ubo_per_render_set(m_renderer.star_rail_char_render_set.ubo.value_ref());
+        ImGui::DragFloat4("debug_control", glm::value_ptr(ubo_per_render_set.debug_control), 0.01f, 0.0f, 1.0f);
+        static auto origin_dir = m_renderer.star_rail_char_render_set.main_light.direction();
+        static float angle = 0;
+        if (ImGui::DragFloat("light direction angle", &angle, 1.0f, 0.0f, 360.0f))
+        {
+            glm::vec3 dir = glm::rotate(glm::angleAxis(glm::radians(angle), glm::vec3(0, 1, 0)), origin_dir);
+            m_renderer.star_rail_char_render_set.main_light.set_direction(dir);
+        }
+        auto current_dir = m_renderer.star_rail_char_render_set.main_light.direction();
+        if (ImGui::DragFloat3("light direction", glm::value_ptr(current_dir), 0.01f, -1.0f, 1.0f))
+        {
+            m_renderer.star_rail_char_render_set.main_light.set_direction(current_dir);
+        }
     }
 }

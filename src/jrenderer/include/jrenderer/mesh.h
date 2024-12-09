@@ -23,6 +23,8 @@ namespace jre
         PipelineVertexInputState() = default;
         PipelineVertexInputState(std::vector<vk::VertexInputBindingDescription> binding_descriptions, std::vector<vk::VertexInputAttributeDescription> attribute_descriptions)
             : m_binding_descriptions(std::move(binding_descriptions)), m_attribute_descriptions(std::move(attribute_descriptions)) {}
+        PipelineVertexInputState(const PipelineVertexInputState &) = default;
+        PipelineVertexInputState(PipelineVertexInputState &&) = default;
 
         const std::vector<vk::VertexInputBindingDescription> &binding_descriptions() const { return m_binding_descriptions; }
         const std::vector<vk::VertexInputAttributeDescription> &attribute_descriptions() const { return m_attribute_descriptions; }

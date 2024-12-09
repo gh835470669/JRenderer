@@ -2,9 +2,10 @@
 
 #include <vulkan/vulkan.hpp>
 #include <gsl/pointers>
-#include "jrenderer/uniform_buffer.h"
+#include "jrenderer/uniform_buffer.hpp"
 #include "jrenderer/texture.h"
 #include "jrenderer/logical_device.h"
+#include <variant>
 
 namespace jre
 {
@@ -61,7 +62,7 @@ namespace jre
         gsl::not_null<const DescriptorPool *> m_descriptor_pool;
         vk::DescriptorSet m_descriptor_set;
         vk::DescriptorSetLayout m_descriptor_set_layout;
-        const std::vector<vk::DescriptorSetLayoutBinding> bindings;
+        const std::vector<vk::DescriptorSetLayoutBinding> m_bindings;
 
     public:
         DescriptorSet() = default;
@@ -77,7 +78,7 @@ namespace jre
         const vk::DescriptorSetLayout &descriptor_set_layout() const { return m_descriptor_set_layout; }
 
         template <
-            typename UniformBufferObjectType = jre::UniformBufferObject,
+            typename UniformBufferObjectType = jre::UniformMVP,
             typename UniformBufferIterator,
             typename Texture2DIterator,
             typename Texture2DIteratorValueType = typename std::iterator_traits<Texture2DIterator>::value_type,
@@ -91,16 +92,16 @@ namespace jre
             UniformBufferIterator uniform_vec_cur = uniform_buffers_begin;
             Texture2DIterator image_vec_cur = images_begin;
             std::vector<vk::WriteDescriptorSet> descriptor_writes;
-            descriptor_writes.reserve(bindings.size());
-            for (size_t i = 0; i < bindings.size(); ++i)
+            descriptor_writes.reserve(m_bindings.size());
+            for (size_t i = 0; i < m_bindings.size(); ++i)
             {
-                if (bindings[i].descriptorType == vk::DescriptorType::eUniformBuffer)
+                if (m_bindings[i].descriptorType == vk::DescriptorType::eUniformBuffer)
                 {
                     vk::DescriptorBufferInfo buffer_info = (*uniform_vec_cur)->descriptor();
                     uniform_vec_cur++;
                     descriptor_writes.emplace_back(m_descriptor_set, static_cast<uint32_t>(i), 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &buffer_info, nullptr);
                 }
-                else if (bindings[i].descriptorType == vk::DescriptorType::eCombinedImageSampler)
+                else if (m_bindings[i].descriptorType == vk::DescriptorType::eCombinedImageSampler)
                 {
                     vk::DescriptorImageInfo image_info = (*image_vec_cur)->descriptor();
                     image_vec_cur++;
@@ -113,6 +114,8 @@ namespace jre
             }
             m_device->device().updateDescriptorSets(descriptor_writes, {});
         }
+
+        void update_descriptor_sets(const std::vector<std::variant<vk::DescriptorBufferInfo, vk::DescriptorImageInfo>> &descriptor_buffers);
     };
 
 }

@@ -16,7 +16,7 @@
 #include "jrenderer/texture.h"
 #include "jrenderer/descriptor.h"
 #include "jrenderer/graphics_pipeline.h"
-#include "jrenderer/uniform_buffer.h"
+#include "jrenderer/uniform_buffer.hpp"
 #include "jrenderer/shader.h"
 #include "jrenderer/render_set.h"
 

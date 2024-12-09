@@ -1,6 +1,7 @@
 #include <vulkan/vulkan.hpp>
 #include <imgui/backends/imgui_impl_win32.h>
 #include "details/imgui_context.h"
+#include "jrenderer/concrete_uniform_buffers.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -110,9 +111,10 @@ namespace jre
             m_descriptor_pool = std::make_unique<DescriptorPool>(graphics.logical_device(), DescriptorPoolCreateInfo{1, 1});
             // vkCreateDescriptorPool(pipeline.device(), &pool_info, nullptr, &g_DescriptorPool);
             m_descriptor_set = graphics.create_descriptor_set({{0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}});
-            std::array<std::shared_ptr<Texture2D>, 1> textures{m_font_texture};
-            std::array<const UniformBuffer<UniformBufferObject> *, 0> uniform_buffers{};
-            m_descriptor_set->update_descriptor_sets(uniform_buffers.begin(), textures.begin());
+            m_descriptor_set->update_descriptor_sets(
+                {
+                    m_font_texture->descriptor(),
+                });
 
             // Store our identifier
             io.Fonts->SetTexID((ImTextureID)m_descriptor_set->descriptor_set());
@@ -190,7 +192,7 @@ namespace jre
             }
             else
             {
-                m_vertex_buffers[current_frame]->update_buffer(vertices);
+                m_vertex_buffers[current_frame]->update(vertices);
             }
 
             // Index buffer
@@ -202,7 +204,7 @@ namespace jre
             }
             else
             {
-                m_index_buffers[current_frame]->update_buffer(indices);
+                m_index_buffers[current_frame]->update(indices);
             }
         }
 

@@ -62,6 +62,7 @@ namespace jre
     {
         const IImageDataView *image_view;
         bool use_mipmaps = false;
+        vk::SamplerAddressMode address_mode = vk::SamplerAddressMode::eRepeat;
     };
 
     // 尝试Conditional Member Definition
@@ -99,7 +100,7 @@ namespace jre
         Texture2DWithMeta(gsl::not_null<const LogicalDevice *> logical_device, const CommandBuffer &command_buffer, const Texture2DCreateInfo &create_info, Texture2DMeta<Name> meta = {})
             : Texture2DWithMeta(logical_device,
                                 command_buffer,
-                                *create_info.image_view,
+                                create_info,
                                 create_info.use_mipmaps ? get_mipmap_levels(create_info.image_view->width(), create_info.image_view->height()) : 1, meta)
         {
         }
@@ -121,14 +122,14 @@ namespace jre
         }
 
     private:
-        Texture2DWithMeta(gsl::not_null<const LogicalDevice *> logical_device, const CommandBuffer &command_buffer, const IImageDataView &image_view, uint32_t mipmap_levels, Texture2DMeta<Name> meta = {})
+        Texture2DWithMeta(gsl::not_null<const LogicalDevice *> logical_device, const CommandBuffer &command_buffer, const Texture2DCreateInfo &create_info, uint32_t mipmap_levels, Texture2DMeta<Name> meta = {})
             : Image2D(logical_device,
                       Image2DCreateInfo{
                           vk::ImageCreateInfo(
                               vk::ImageCreateFlags(),
                               vk::ImageType::e2D,
                               vk::Format::eR8G8B8A8Unorm,
-                              vk::Extent3D(image_view.width(), image_view.height(), 1),
+                              vk::Extent3D(create_info.image_view->width(), create_info.image_view->height(), 1),
                               mipmap_levels,
                               1,
                               vk::SampleCountFlagBits::e1,
@@ -141,7 +142,7 @@ namespace jre
                           vk::SamplerCreateInfo(vk::SamplerCreateFlags(),
                                                 vk::Filter::eLinear, vk::Filter::eLinear,
                                                 vk::SamplerMipmapMode::eLinear,
-                                                vk::SamplerAddressMode::eRepeat, vk::SamplerAddressMode::eRepeat, vk::SamplerAddressMode::eRepeat,
+                                                create_info.address_mode, create_info.address_mode, create_info.address_mode,
                                                 0.0f,
                                                 VK_FALSE, 16,
                                                 VK_FALSE, vk::CompareOp::eNever,
@@ -151,7 +152,7 @@ namespace jre
                                                 nullptr)}),
               Texture2DMeta<Name>(meta)
         {
-            HostVisibleBuffer staging_buffer(logical_device, vk::BufferUsageFlagBits::eTransferSrc, image_view.data_size(), image_view.data());
+            HostVisibleBuffer staging_buffer(logical_device, vk::BufferUsageFlagBits::eTransferSrc, create_info.image_view->data_size(), create_info.image_view->data());
 
             // 如果是mipmaps，会将所有的level都转成eTransferDstOptimal。因为barrier的baselevel是0，levelCount是最高
             // 如果都转成VK_IMAGE_LAYOUT_GENERAL的话，就直接blit就行了，但是会慢，所以选择转src和dst

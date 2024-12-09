@@ -4,20 +4,42 @@
 #include "jrenderer/graphics.h"
 #include "jrenderer/mesh.h"
 #include "jrenderer/descriptor.h"
+#include "jrenderer/concrete_uniform_buffers.h"
+#include "jrenderer/utils/diff_trigger.hpp"
 
 namespace jre
 {
     void StarRailCharRenderSetRenderer::draw(const Graphics &graphics, const CommandBuffer &command_buffer)
     {
-        command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline);
+        std::function<void(ModelPart, ModelPart)> bind_pipeline = [&](ModelPart, ModelPart model_part)
+        {
+            switch (model_part)
+            {
+            case ModelPart::Body:
+                command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_body);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_body->pipeline_layout(), 0, render_set->descriptor_set->descriptor_set(), nullptr);
+                break;
+            case ModelPart::Face:
+                command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_face);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_face->pipeline_layout(), 0, render_set->descriptor_set->descriptor_set(), nullptr);
+                break;
+            case ModelPart::Hair:
+                command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_hair);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_hair->pipeline_layout(), 0, render_set->descriptor_set->descriptor_set(), nullptr);
+                break;
+            default:
+                throw std::runtime_error("Unknown model part");
+            }
+        };
+        DiffTrigger<ModelPart> bind_pipeline_trigger(ModelPart::PartNum, bind_pipeline);
 
         command_buffer.command_buffer().setViewport(0, func_get_viewport(graphics.swap_chain()->extent()));
-
         command_buffer.command_buffer().setScissor(0, func_get_scissor(graphics.swap_chain()->extent()));
 
+        update_ubo_per_render_set();
         for (const auto &render_obj : render_set->render_objects)
         {
-            update_uniform_buffer(*graphics.swap_chain(), render_obj); // 这里并不会记录command buffer，其实相当于先把所有ubo更新了，然后再执行所有的draw call
+            update_ubo_per_obj(*graphics.swap_chain(), render_obj); // 这里并不会记录command buffer，其实相当于先把所有ubo更新了，然后再执行所有的draw call
 
             vk::DeviceSize offsets[] = {0};
             command_buffer.command_buffer().bindVertexBuffers(0, 1, &render_obj.get().mesh->vertex_buffer().buffer(), offsets);
@@ -30,24 +52,32 @@ namespace jre
             for (size_t i = 0; i < render_obj.get().mesh->sub_meshes().size(); ++i)
             {
                 const PmxSubMesh &sub_mesh = render_obj.get().mesh->sub_meshes()[i];
-                const Material &material = render_obj.get().sub_mesh_materials[i];
+                const PmxMaterial &material = render_obj.get().sub_mesh_materials[i];
                 command_buffer.command_buffer().bindIndexBuffer(render_obj.get().mesh->index_buffer().buffer(), sub_mesh.index_buffer().offset(), render_obj.get().mesh->index_buffer().vk_index_type());
-                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline->pipeline_layout(), 0, material.descriptor_set->descriptor_set(), nullptr);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->get_graphics_pipeline(render_obj.get().model_parts[i])->pipeline_layout(), 1, material.descriptor_set->descriptor_set(), nullptr);
+                bind_pipeline_trigger.set_value(render_obj.get().model_parts[i]); // 如果值不一样，则触发绑定pipeline
                 command_buffer.command_buffer().drawIndexed(sub_mesh.index_buffer().count(), 1, 0, 0, 0);
             }
         }
     }
 
-    void StarRailCharRenderSetRenderer::update_uniform_buffer(const SwapChain &swap_chian, PmxModel &render_obj) const
+    void StarRailCharRenderSetRenderer::update_ubo_per_obj(const SwapChain &swap_chian, PmxModel &render_obj) const
     {
-        UniformBufferObject ubo{};
+        PmxUniformPerObject ubo_per_obj{};
+        UniformMVP &ubo = ubo_per_obj.mvp;
         ubo.model = render_obj.get_model_matrix();
-        // ubo.view = glm::lookAt(glm::vec3(4.0f, 4.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = render_set->view_matrix;
         ubo.proj = glm::perspective(glm::radians(45.0f), swap_chian.extent().width / (float)swap_chian.extent().height, 0.1f, 100.0f);
         ubo.proj[1][1] *= -1;
         for (auto &sub_mesh : render_obj.sub_mesh_materials)
-            sub_mesh.uniform_buffer->update_buffer(ubo);
+            sub_mesh.uniform_buffer->update(ubo_per_obj);
+    }
+
+    void StarRailCharRenderSetRenderer::update_ubo_per_render_set()
+    {
+        PmxUniformPerRenderSet ubo_per_render_set(render_set->ubo.value());
+        ubo_per_render_set.main_light = convert_to<UniformLight>(render_set->main_light);
+        render_set->ubo.update(ubo_per_render_set);
     }
 
     vk::VertexInputBindingDescription PmxVertex::get_binding_description(uint32_t binding)

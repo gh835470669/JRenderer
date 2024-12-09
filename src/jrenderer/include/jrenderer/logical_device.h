@@ -13,9 +13,9 @@ namespace jre
   {
   private:
     vk::Device m_device;
-    uint32_t m_graphics_queue_family = -1;
-    uint32_t m_present_queue_family = -1;
-    uint32_t m_transfer_queue_family = -1;
+    uint32_t m_graphics_queue_family;
+    uint32_t m_present_queue_family;
+    uint32_t m_transfer_queue_family;
     vk::Queue m_graphics_queue;
     vk::Queue m_present_queue;
     vk::Queue m_transfer_queue;

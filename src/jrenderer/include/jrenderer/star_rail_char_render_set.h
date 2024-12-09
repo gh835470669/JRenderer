@@ -6,9 +6,19 @@
 #include "jrenderer/asset/convert.hpp"
 #include "jrenderer/asset/pmx_file.h"
 #include "jrenderer/material.h"
+#include "jrenderer/light.h"
+#include "jrenderer/specilization_constant.hpp"
 
 namespace jre
 {
+    enum class ModelPart
+    {
+        Body,
+        Hair,
+        Face,
+        PartNum
+    };
+
     class PmxVertex
     {
     public:
@@ -62,12 +72,31 @@ namespace jre
         IndexBufferSpan<uint32_t> m_index_buffer;
     };
 
+    struct PmxUniformPerRenderSet
+    {
+        UniformLight main_light;
+        glm::vec3 debug_control;
+    };
+
+    struct PmxUniformPerObject
+    {
+        UniformMVP mvp;
+    };
+
+    struct PmxMaterial
+    {
+        std::vector<std::shared_ptr<Texture2D>> textures;
+        std::unique_ptr<DescriptorSet> descriptor_set;
+        std::unique_ptr<UniformBuffer<PmxUniformPerObject>> uniform_buffer;
+    };
+
     class PmxModel
     {
     public:
         glm::mat4 model_matrix = glm::identity<glm::mat4>();
         std::shared_ptr<const PmxMesh> mesh;
-        std::vector<Material> sub_mesh_materials;
+        std::vector<PmxMaterial> sub_mesh_materials;
+        std::vector<ModelPart> model_parts;
 
         glm::mat4 get_model_matrix() const { return model_matrix; }
     };
@@ -75,9 +104,40 @@ namespace jre
     class StarRailCharRenderSet
     {
     public:
-        std::shared_ptr<GraphicsPipeline> graphics_pipeline;
+        std::shared_ptr<GraphicsPipeline> graphics_pipeline_body;
+        std::shared_ptr<GraphicsPipeline> graphics_pipeline_hair;
+        std::shared_ptr<GraphicsPipeline> graphics_pipeline_face;
+
         std::vector<std::reference_wrapper<PmxModel>> render_objects;
         glm::mat4 view_matrix;
+        DirectionalLight main_light;
+        UniformBuffer<PmxUniformPerRenderSet> ubo;
+        std::unique_ptr<DescriptorSet> descriptor_set;
+
+        StarRailCharRenderSet(gsl::not_null<const LogicalDevice *> device) : graphics_pipeline_body(nullptr),
+                                                                             graphics_pipeline_hair(nullptr),
+                                                                             graphics_pipeline_face(nullptr),
+                                                                             render_objects(),
+                                                                             view_matrix(glm::identity<glm::mat4>()),
+                                                                             ubo(device),
+                                                                             descriptor_set(nullptr)
+        {
+        }
+
+        std::shared_ptr<GraphicsPipeline> get_graphics_pipeline(ModelPart model_part) const
+        {
+            switch (model_part)
+            {
+            case ModelPart::Body:
+                return graphics_pipeline_body;
+            case ModelPart::Face:
+                return graphics_pipeline_face;
+            case ModelPart::Hair:
+                return graphics_pipeline_hair;
+            default:
+                throw std::runtime_error("Unknown model part");
+            }
+        }
     };
 
     class StarRailCharRenderSetRenderer : public IRenderSetRenderer
@@ -87,6 +147,7 @@ namespace jre
         std::function<vk::Viewport(const vk::Extent2D &)> func_get_viewport;
         std::function<vk::Rect2D(const vk::Extent2D &)> func_get_scissor;
         void draw(const Graphics &graphics, const CommandBuffer &command_buffer) override;
-        void update_uniform_buffer(const SwapChain &swap_chian, PmxModel &render_obj) const;
+        void update_ubo_per_obj(const SwapChain &swap_chian, PmxModel &render_obj) const;
+        void update_ubo_per_render_set();
     };
 }

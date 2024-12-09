@@ -17,7 +17,7 @@ App::~App()
 {
 }
 
-int App::MainLoop()
+int App::main_loop()
 {
     bool exit = false;
     while (!exit)

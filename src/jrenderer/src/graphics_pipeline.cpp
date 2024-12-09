@@ -9,9 +9,20 @@ namespace jre
     {
         Expects(create_info.vertex_shader != nullptr && create_info.fragment_shader != nullptr);
 
+        const auto &[sp_constansts, sp_constants_entires] = convert_to<std::pair<jre::bytes, std::vector<vk::SpecializationMapEntry>>>(create_info.specialization_constants);
+        vk::SpecializationInfo specialization_info{};
+        specialization_info.mapEntryCount = static_cast<uint32_t>(sp_constants_entires.size());
+        specialization_info.pMapEntries = sp_constants_entires.data();
+        specialization_info.dataSize = static_cast<uint32_t>(sp_constansts.size());
+        specialization_info.pData = sp_constansts.data();
+
         std::vector<vk::PipelineShaderStageCreateInfo> shader_stages{
             create_info.vertex_shader->shader_stage_info(),
             create_info.fragment_shader->shader_stage_info()};
+        for (auto &stage : shader_stages)
+        {
+            stage.pSpecializationInfo = &specialization_info;
+        }
 
         // https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Fixed_functions
         // baked into an immutable pipeline state object

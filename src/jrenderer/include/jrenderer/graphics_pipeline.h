@@ -5,6 +5,7 @@
 #include <vector>
 #include <variant>
 #include "jrenderer/mesh.h"
+#include "jrenderer/specilization_constant.hpp"
 
 namespace jre
 {
@@ -17,12 +18,13 @@ namespace jre
         vk::RenderPass render_pass;
         std::shared_ptr<const VertexShader> vertex_shader;
         std::shared_ptr<const FragmentShader> fragment_shader;
-        PipelineVertexInputState vertex_input_info;
+        const PipelineVertexInputState &vertex_input_info;
         const std::vector<vk::DescriptorSetLayout> &descriptor_set_layouts;
         const std::vector<vk::PushConstantRange> &push_constant_ranges;
         bool enable_depth_stencil = true;
         std::variant<bool, vk::PipelineColorBlendAttachmentState> alpha_blending = true; // true: alpha blending, false: overwrite
         vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e1;
+        const SpecializationConstants &specialization_constants = {};
     };
 
     class GraphicsPipeline
