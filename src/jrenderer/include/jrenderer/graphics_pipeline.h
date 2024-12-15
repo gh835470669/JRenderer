@@ -25,6 +25,7 @@ namespace jre
         std::variant<bool, vk::PipelineColorBlendAttachmentState> alpha_blending = true; // true: alpha blending, false: overwrite
         vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e1;
         const SpecializationConstants &specialization_constants = {};
+        vk::CullModeFlagBits cull_mode = vk::CullModeFlagBits::eBack;
     };
 
     class GraphicsPipeline

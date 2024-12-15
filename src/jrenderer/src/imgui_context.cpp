@@ -108,7 +108,7 @@ namespace jre
             // pool_info.poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes));
             // pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
             // pool_info.pPoolSizes = pool_sizes;
-            m_descriptor_pool = std::make_unique<DescriptorPool>(graphics.logical_device(), DescriptorPoolCreateInfo{1, 1});
+            m_descriptor_pool = std::make_unique<DescriptorPool>(graphics.logical_device(), DescriptorPoolCreateInfo{{vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, 1}}});
             // vkCreateDescriptorPool(pipeline.device(), &pool_info, nullptr, &g_DescriptorPool);
             m_descriptor_set = graphics.create_descriptor_set({{0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}});
             m_descriptor_set->update_descriptor_sets(
@@ -133,7 +133,9 @@ namespace jre
                     {push_constant_range},
                     false,
                     true,
-                    graphics.settings().msaa});
+                    graphics.settings().msaa,
+                    {},
+                    vk::CullModeFlagBits::eNone});
 
             m_vertex_buffers.resize(graphics.frame_count());
             m_index_buffers.resize(graphics.frame_count());
@@ -418,7 +420,9 @@ namespace jre
                     {push_constant_range},
                     false,
                     true,
-                    m_graphics.settings().msaa});
+                    m_graphics.settings().msaa,
+                    {},
+                    vk::CullModeFlagBits::eNone});
         }
     }
 }

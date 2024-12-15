@@ -5,7 +5,7 @@
 
 namespace jre
 {
-    DescriptorSetLayout::DescriptorSetLayout(gsl::not_null<const LogicalDevice *> logical_device, const std::vector<vk::DescriptorSetLayoutBinding> &bindings) : m_device(logical_device)
+    DescriptorSetLayout::DescriptorSetLayout(gsl::not_null<const LogicalDevice *> logical_device, const std::vector<vk::DescriptorSetLayoutBinding> &bindings) : m_device(logical_device), m_bindings(bindings)
     {
         vk::DescriptorSetLayoutCreateInfo vk_create_info{};
         vk_create_info.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -25,12 +25,8 @@ namespace jre
         vk_create_info.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
         vk_create_info.maxSets = create_info.max_sets;
 
-        std::vector<vk::DescriptorPoolSize> pool_sizes;
-        pool_sizes.reserve(create_info.max_sets_per_type);
-        pool_sizes.emplace_back(vk::DescriptorType::eUniformBuffer, create_info.max_sets);
-        pool_sizes.emplace_back(vk::DescriptorType::eCombinedImageSampler, create_info.max_sets);
-        vk_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
-        vk_create_info.pPoolSizes = pool_sizes.data();
+        vk_create_info.poolSizeCount = static_cast<uint32_t>(create_info.pool_sizes.size());
+        vk_create_info.pPoolSizes = create_info.pool_sizes.data();
 
         m_descriptor_pool = m_device->device().createDescriptorPool(vk_create_info);
     }

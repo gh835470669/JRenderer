@@ -254,6 +254,8 @@ namespace jre
                                                                                                                                                                              vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1),
                                                                                                                                                                              {}})
     {
+        // https://vulkan-tutorial.com/Depth_buffering#page_Explicitly-transitioning-the-depth-image
+        // We don't need to explicitly transition the layout of the image to a depth attachment because we'll take care of this in the render pass
     }
 
     ColorImage2D::ColorImage2D(gsl::not_null<const LogicalDevice *> logical_device, ColorImage2DCreateInfo color_image_2d_create_info)

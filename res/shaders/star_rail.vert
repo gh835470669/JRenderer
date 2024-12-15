@@ -14,6 +14,7 @@ struct MVP
 
 layout(set = 1, binding = 0) uniform UniformPerObject {
     MVP mvp;
+    vec4 debug_control;
 } ubo_per_obj;
 
 // Vectors

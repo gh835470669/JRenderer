@@ -16,6 +16,7 @@ namespace jre
     private:
         gsl::not_null<const LogicalDevice *> m_device;
         vk::DescriptorSetLayout m_descriptor_set_layout;
+        const std::vector<vk::DescriptorSetLayoutBinding> m_bindings;
 
     public:
         DescriptorSetLayout() = default;
@@ -28,12 +29,13 @@ namespace jre
 
         const vk::DescriptorSetLayout &descriptor_set_layout() const { return m_descriptor_set_layout; }
         operator vk::DescriptorSetLayout() const { return m_descriptor_set_layout; }
+        const std::vector<vk::DescriptorSetLayoutBinding> &bindings() const { return m_bindings; }
     };
 
     struct DescriptorPoolCreateInfo
     {
-        uint32_t max_sets = 100;
-        uint32_t max_sets_per_type = 100;
+        std::vector<vk::DescriptorPoolSize> pool_sizes;
+        uint32_t max_sets = 8192; // 2^13
     };
 
     class DescriptorPool

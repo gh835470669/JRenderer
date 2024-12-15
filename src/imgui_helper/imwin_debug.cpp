@@ -87,7 +87,7 @@ void ImWinDebug::mimaps()
         {
             material.descriptor_set->update_descriptor_sets(
                 {
-                    material.uniform_buffer->descriptor(),
+                    m_renderer.model_lingsha.uniform_buffer->descriptor(),
                     material.textures[0]->descriptor(),
                     material.textures[1]->descriptor(),
                     material.textures[2]->descriptor(),
@@ -115,8 +115,11 @@ void ImWinDebug::shader_properties()
 {
     if (ImGui::CollapsingHeader("Shader Properties", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        jre::PmxUniformPerRenderSet &ubo_per_render_set(m_renderer.star_rail_char_render_set.ubo.value_ref());
-        ImGui::DragFloat4("debug_control", glm::value_ptr(ubo_per_render_set.debug_control), 0.01f, 0.0f, 1.0f);
+        // jre::PmxUniformPerRenderSet &ubo_per_render_set(m_renderer.model_lingsha.mesh.ubo.value_ref());
+        // ImGui::DragFloat4("debug_control", glm::value_ptr(ubo_per_render_set.debug_control), 0.01f, 0.0f, 1.0f);
+        jre::PmxUniformPerObject &ubo_per_object(m_renderer.model_lingsha.uniform_buffer->value_ref());
+        ImGui::DragFloat4("debug_control", glm::value_ptr(ubo_per_object.debug_control), 0.01f, 0.0f, 1.0f);
+
         static auto origin_dir = m_renderer.star_rail_char_render_set.main_light.direction();
         static float angle = 0;
         if (ImGui::DragFloat("light direction angle", &angle, 1.0f, 0.0f, 360.0f))

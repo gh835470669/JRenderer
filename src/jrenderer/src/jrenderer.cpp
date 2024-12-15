@@ -31,6 +31,7 @@ namespace jre
         star_rail_char_render_set.render_objects.push_back(model_lingsha);
         star_rail_char_render_set.descriptor_set = m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}});
         star_rail_char_render_set.descriptor_set->update_descriptor_sets({star_rail_char_render_set.ubo.descriptor()});
+
         auto vert_shader = std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/star_rail_vert.spv");
         auto frag_shader = std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/star_rail_frag.spv");
         std::vector<vk::DescriptorSetLayout> descriptor_sets{star_rail_char_render_set.descriptor_set->descriptor_set_layout(),
@@ -53,7 +54,8 @@ namespace jre
                 true,
                 false,
                 m_graphics.settings().msaa,
-                SpecializationConstants({{0, bytes(ModelPart::Body)}})});
+                {},
+                vk::CullModeFlagBits::eNone});
         star_rail_char_render_set.graphics_pipeline_hair = std::make_shared<GraphicsPipeline>(
             m_graphics.logical_device(),
             GraphicsPipelineCreateInfo{
@@ -67,7 +69,8 @@ namespace jre
                 true,
                 false,
                 m_graphics.settings().msaa,
-                SpecializationConstants({{0, bytes(ModelPart::Hair)}})});
+                SpecializationConstants({{0, bytes(ModelPart::Hair)}}),
+                vk::CullModeFlagBits::eBack});
         star_rail_char_render_set.graphics_pipeline_face = std::make_shared<GraphicsPipeline>(
             m_graphics.logical_device(),
             GraphicsPipelineCreateInfo{
@@ -81,7 +84,36 @@ namespace jre
                 true,
                 false,
                 m_graphics.settings().msaa,
-                SpecializationConstants({{0, bytes(ModelPart::Face)}})});
+                SpecializationConstants({{0, bytes(ModelPart::Face)}}),
+                vk::CullModeFlagBits::eBack});
+        star_rail_char_render_set.graphics_pipeline_outline = std::make_shared<GraphicsPipeline>(
+            m_graphics.logical_device(),
+            GraphicsPipelineCreateInfo{
+                *m_graphics.render_pass(),
+                std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/backface_outline_vert.spv"),
+                std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/backface_outline_frag.spv"),
+                vertex_input_state,
+                {model_lingsha.sub_mesh_materials[0].outline_descriptor_set->descriptor_set_layout()},
+                {},
+                true,
+                false,
+                m_graphics.settings().msaa,
+                SpecializationConstants({{0, bytes(ModelPart::Body)}}),
+                vk::CullModeFlagBits::eFront});
+        star_rail_char_render_set.graphics_pipeline_outline_face = std::make_shared<GraphicsPipeline>(
+            m_graphics.logical_device(),
+            GraphicsPipelineCreateInfo{
+                *m_graphics.render_pass(),
+                std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/backface_outline_vert.spv"),
+                std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/backface_outline_frag.spv"),
+                vertex_input_state,
+                {model_lingsha.sub_mesh_materials[0].outline_descriptor_set->descriptor_set_layout()},
+                {},
+                true,
+                false,
+                m_graphics.settings().msaa,
+                SpecializationConstants({{0, bytes(ModelPart::Face)}}),
+                vk::CullModeFlagBits::eFront});
         star_rail_char_render_set.main_light.set_direction(glm::vec3(1.0f, -1.0f, -1.0f));
 
         star_rail_char_render_set_renderer.func_get_viewport = viewport::get_full_viewport;
@@ -109,7 +141,9 @@ namespace jre
                 {},
                 true,
                 false,
-                msaa});
+                msaa,
+                {},
+                vk::CullModeFlagBits::eBack});
 
         m_imgui_context.on_msaa_changed();
     }

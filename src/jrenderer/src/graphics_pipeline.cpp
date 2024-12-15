@@ -64,7 +64,7 @@ namespace jre
         rasterizer.polygonMode = vk::PolygonMode::eFill;
         // The lineWidth member is straightforward, it describes the thickness of lines in terms of number of fragments. The maximum line width that is supported depends on the hardware and any line thicker than 1.0f requires you to enable the wideLines GPU feature.
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+        rasterizer.cullMode = create_info.cull_mode;
         rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
 
         // The rasterizer can alter the depth values by adding a constant value or biasing them based on a fragment's slope. This is sometimes used for shadow mapping,

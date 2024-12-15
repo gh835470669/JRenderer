@@ -81,13 +81,14 @@ namespace jre
     struct PmxUniformPerObject
     {
         UniformMVP mvp;
+        glm::vec4 debug_control;
     };
 
     struct PmxMaterial
     {
         std::vector<std::shared_ptr<Texture2D>> textures;
         std::unique_ptr<DescriptorSet> descriptor_set;
-        std::unique_ptr<UniformBuffer<PmxUniformPerObject>> uniform_buffer;
+        std::unique_ptr<DescriptorSet> outline_descriptor_set;
     };
 
     class PmxModel
@@ -97,6 +98,7 @@ namespace jre
         std::shared_ptr<const PmxMesh> mesh;
         std::vector<PmxMaterial> sub_mesh_materials;
         std::vector<ModelPart> model_parts;
+        std::unique_ptr<UniformBuffer<PmxUniformPerObject>> uniform_buffer;
 
         glm::mat4 get_model_matrix() const { return model_matrix; }
     };
@@ -107,6 +109,8 @@ namespace jre
         std::shared_ptr<GraphicsPipeline> graphics_pipeline_body;
         std::shared_ptr<GraphicsPipeline> graphics_pipeline_hair;
         std::shared_ptr<GraphicsPipeline> graphics_pipeline_face;
+        std::shared_ptr<GraphicsPipeline> graphics_pipeline_outline;      // backface
+        std::shared_ptr<GraphicsPipeline> graphics_pipeline_outline_face; // backface
 
         std::vector<std::reference_wrapper<PmxModel>> render_objects;
         glm::mat4 view_matrix;

@@ -139,6 +139,8 @@ namespace jre
                                                                                                  { return model_parts[sub_mesh_index]; });
             model.model_parts = std::move(std::vector<ModelPart>(remove_duplicate_model_part.begin(), remove_duplicate_model_part.end()));
 
+            model.uniform_buffer = std::make_unique<UniformBuffer<PmxUniformPerObject>>(graphics.logical_device());
+
             model.sub_mesh_materials.reserve(pmx_file.model().material_count);
             for (size_t i : filtered_sub_mesh_indexes)
             {
@@ -156,13 +158,14 @@ namespace jre
                                                                   {2, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
                                                                   {3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
                                                                   {4, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}})),
-                        std::make_unique<UniformBuffer<PmxUniformPerObject>>(graphics.logical_device()));
+                        std::move(graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}})));
                     material.descriptor_set->update_descriptor_sets(
-                        {material.uniform_buffer->descriptor(),
+                        {model.uniform_buffer->descriptor(),
                          material.textures[0]->descriptor(),
                          material.textures[1]->descriptor(),
                          material.textures[2]->descriptor(),
                          material.textures[3]->descriptor()});
+                    material.outline_descriptor_set->update_descriptor_sets({model.uniform_buffer->descriptor()});
                 }
                 else if (model_parts[i] == ModelPart::Face)
                 {
@@ -174,13 +177,14 @@ namespace jre
                                                                   {2, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
                                                                   {3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
                                                                   {4, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}})),
-                        std::make_unique<UniformBuffer<PmxUniformPerObject>>(graphics.logical_device()));
+                        std::move(graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}})));
                     material.descriptor_set->update_descriptor_sets(
-                        {material.uniform_buffer->descriptor(),
+                        {model.uniform_buffer->descriptor(),
                          material.textures[0]->descriptor(),
                          texture_light_map->descriptor(),
                          texture_cool_ramp->descriptor(),
                          texture_warm_ramp->descriptor()});
+                    material.outline_descriptor_set->update_descriptor_sets({model.uniform_buffer->descriptor()});
                 }
                 else if (model_parts[i] == ModelPart::Body)
                 {
@@ -195,15 +199,17 @@ namespace jre
                                                                   {2, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
                                                                   {3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
                                                                   {4, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}})),
-                        std::make_unique<UniformBuffer<PmxUniformPerObject>>(graphics.logical_device()));
+                        std::move(graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}})));
                     material.descriptor_set->update_descriptor_sets(
-                        {material.uniform_buffer->descriptor(),
+                        {model.uniform_buffer->descriptor(),
                          material.textures[0]->descriptor(),
                          material.textures[1]->descriptor(),
                          material.textures[2]->descriptor(),
                          material.textures[3]->descriptor()});
+                    material.outline_descriptor_set->update_descriptor_sets({model.uniform_buffer->descriptor()});
                 }
             }
+
             return model;
         }
 
@@ -212,5 +218,4 @@ namespace jre
         Camera camera;
         CameraController camera_controller;
     };
-
 }

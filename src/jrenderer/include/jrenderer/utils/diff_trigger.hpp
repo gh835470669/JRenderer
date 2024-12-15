@@ -19,6 +19,7 @@ namespace jre
         }
 
         const ValueType &value() const { return m_value; }
+        void set_trigger_func(TriggerFunc trigger_func) { m_trigger_func = std::move(trigger_func); }
 
     private:
         ValueType m_value;

@@ -32,6 +32,27 @@ namespace jre
             }
         };
         DiffTrigger<ModelPart> bind_pipeline_trigger(ModelPart::PartNum, bind_pipeline);
+        std::function<void(const PmxMaterial &, ModelPart, ModelPart)> bind_pipeline_outline = [&](const PmxMaterial &material, ModelPart, ModelPart model_part)
+        {
+            switch (model_part)
+            {
+            case ModelPart::Body:
+                command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_outline);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_outline->pipeline_layout(), 0, material.outline_descriptor_set->descriptor_set(), nullptr);
+                break;
+            case ModelPart::Face:
+                command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_outline_face);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_outline_face->pipeline_layout(), 0, material.outline_descriptor_set->descriptor_set(), nullptr);
+                break;
+            case ModelPart::Hair:
+                command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_outline);
+                command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_outline->pipeline_layout(), 0, material.outline_descriptor_set->descriptor_set(), nullptr);
+                break;
+            default:
+                throw std::runtime_error("Unknown model part");
+            }
+        };
+        DiffTrigger<ModelPart> bind_pipeline_trigger_outline(ModelPart::PartNum, {});
 
         command_buffer.command_buffer().setViewport(0, func_get_viewport(graphics.swap_chain()->extent()));
         command_buffer.command_buffer().setScissor(0, func_get_scissor(graphics.swap_chain()->extent()));
@@ -58,19 +79,31 @@ namespace jre
                 bind_pipeline_trigger.set_value(render_obj.get().model_parts[i]); // 如果值不一样，则触发绑定pipeline
                 command_buffer.command_buffer().drawIndexed(sub_mesh.index_buffer().count(), 1, 0, 0, 0);
             }
+
+            // command_buffer.command_buffer().bindPipeline(vk::PipelineBindPoint::eGraphics, *render_set->graphics_pipeline_outline);
+            for (size_t i = 0; i < render_obj.get().mesh->sub_meshes().size(); ++i)
+            {
+                const PmxSubMesh &sub_mesh = render_obj.get().mesh->sub_meshes()[i];
+                const PmxMaterial &material = render_obj.get().sub_mesh_materials[i];
+                command_buffer.command_buffer().bindIndexBuffer(render_obj.get().mesh->index_buffer().buffer(), sub_mesh.index_buffer().offset(), render_obj.get().mesh->index_buffer().vk_index_type());
+                // command_buffer.command_buffer().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, render_set->graphics_pipeline_outline->pipeline_layout(), 0, material.outline_descriptor_set->descriptor_set(), nullptr);
+                bind_pipeline_trigger_outline.set_trigger_func([&bind_pipeline_outline, &material](ModelPart _, ModelPart model_part)
+                                                               { bind_pipeline_outline(material, _, model_part); });
+                bind_pipeline_trigger_outline.set_value(render_obj.get().model_parts[i]);
+                command_buffer.command_buffer().drawIndexed(sub_mesh.index_buffer().count(), 1, 0, 0, 0);
+            }
         }
     }
 
     void StarRailCharRenderSetRenderer::update_ubo_per_obj(const SwapChain &swap_chian, PmxModel &render_obj) const
     {
-        PmxUniformPerObject ubo_per_obj{};
+        PmxUniformPerObject ubo_per_obj(render_obj.uniform_buffer->value());
         UniformMVP &ubo = ubo_per_obj.mvp;
         ubo.model = render_obj.get_model_matrix();
         ubo.view = render_set->view_matrix;
         ubo.proj = glm::perspective(glm::radians(45.0f), swap_chian.extent().width / (float)swap_chian.extent().height, 0.1f, 100.0f);
         ubo.proj[1][1] *= -1;
-        for (auto &sub_mesh : render_obj.sub_mesh_materials)
-            sub_mesh.uniform_buffer->update(ubo_per_obj);
+        render_obj.uniform_buffer->update(ubo_per_obj);
     }
 
     void StarRailCharRenderSetRenderer::update_ubo_per_render_set()

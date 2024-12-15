@@ -24,7 +24,7 @@ namespace jre
           m_render_pass(m_logical_device.get(), m_swap_chain->image_format(), m_depth_image.format(), m_settings.msaa),
           m_command_pool(std::make_unique<CommandPool>(m_logical_device.get(), CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_logical_device->graphics_queue_family()))),
           m_transfer_command_pool(std::make_unique<CommandPool>(m_logical_device.get(), CommandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, m_logical_device->transfer_queue_family()))),
-          m_descriptor_pool(std::make_unique<DescriptorPool>(m_logical_device.get(), DescriptorPoolCreateInfo{100, 100}))
+          m_descriptor_pool(std::make_unique<DescriptorPool>(m_logical_device.get(), DescriptorPoolCreateInfo{{vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, 100), vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 100)}}))
     {
         create_framebuffers();
         for (uint32_t i = 0; i < m_swap_chain->images().size(); ++i)
