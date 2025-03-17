@@ -1,5 +1,7 @@
 #define CAMERA_IMPLEMENTATION
 #include "jrenderer/camera/camera_controller.h"
+#undef CAMERA_IMPLEMENTATION
+#include "jrenderer/drawer/scene_drawer.h"
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #include <glm/gtx/quaternion.hpp>
@@ -47,14 +49,13 @@ namespace jre
         m_input_map.MapBool(static_cast<UserButtonId>(ButtonCameraControl::Reset), input_manager.keyboard_device(), gainput::KeyR);
     }
 
-    void CameraController::tick(const TickContext &context)
+    void CameraController::tick(SceneTickContext context)
     {
-        if (!camera)
-            return;
+        Camera *camera = &context.scene.render_viewports[0].camera;
 
         if (m_input_map.GetBool(static_cast<UserButtonId>(ButtonCameraControl::Reset)))
         {
-            reset_default_camera();
+            *camera = default_camera;
         }
 
         bool is_accelerate = m_input_map.GetBool(static_cast<UserButtonId>(ButtonCameraControl::AccelerateMode));
@@ -102,13 +103,5 @@ namespace jre
                                    -m_input_map.GetFloatDelta(static_cast<UserButtonId>(ButtonCameraControl::RotateYaw)) * context.delta_time * sensitivity,
                                    0});
         }
-    }
-
-    void CameraController::reset_default_camera()
-    {
-        if (!camera)
-            return;
-
-        *camera = default_camera;
     }
 }

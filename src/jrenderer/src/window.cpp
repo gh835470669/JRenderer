@@ -117,7 +117,7 @@ namespace jre
         default:
             for (auto &handler : message_handlers)
             {
-                if (auto res = handler.get().WindowProc(hwnd, msg, wp, lp) != 0)
+                if (auto res = handler(hwnd, msg, wp, lp) != 0)
                 {
                     return res;
                 }

@@ -1,62 +1,24 @@
-#pragma
+#pragma once
 
 #include <functional>
 
 namespace jre
 {
-    template <typename ValueType, typename TriggerFunc = std::function<void(ValueType, ValueType)>, bool ImmediateTrigger = true>
+    template <typename ValueType>
     class DiffTrigger
     {
     public:
-        DiffTrigger(ValueType value, TriggerFunc trigger_func) : m_value(value), m_trigger_func(std::move(trigger_func)) {}
+        DiffTrigger() : m_value() {}
+        DiffTrigger(ValueType value) : m_value(value) {}
 
-        void set_value(ValueType value)
+        bool update(ValueType value)
         {
-            if (m_value != value)
-            {
-                m_trigger_func(std::exchange(m_value, value), value);
-            }
+            return std::exchange(m_value, value) != value;
         }
 
         const ValueType &value() const { return m_value; }
-        void set_trigger_func(TriggerFunc trigger_func) { m_trigger_func = std::move(trigger_func); }
 
     private:
         ValueType m_value;
-        TriggerFunc m_trigger_func;
-    };
-
-    template <typename ValueType, typename TriggerFunc>
-    class DiffTrigger<ValueType, TriggerFunc, false>
-    {
-    public:
-        DiffTrigger(ValueType value, TriggerFunc trigger_func) : m_value(value), m_trigger_func(std::move(trigger_func)) {}
-
-        void set_value(ValueType value)
-        {
-            if (m_value != value)
-            {
-                std::exchange(m_value, value);
-                m_is_dirty = true;
-            }
-        }
-
-        const ValueType &value() const { return m_value; }
-        bool is_dirty() const { return m_is_dirty; }
-        void reset_dirty() { m_is_dirty = false; }
-
-        void trigger()
-        {
-            if (m_is_dirty)
-            {
-                m_trigger_func(m_value);
-                m_is_dirty = false;
-            }
-        }
-
-    private:
-        ValueType m_value;
-        TriggerFunc m_trigger_func;
-        bool m_is_dirty = false;
     };
 }

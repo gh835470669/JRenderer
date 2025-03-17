@@ -6,113 +6,165 @@
 #include "jrenderer/command_buffer.h"
 #include <glm/gtx/hash.hpp>
 #include <tiny_obj_loader.h>
+#include <ranges>
 
 namespace jre
 {
-    class IVertex
-    {
-    };
 
-    class PipelineVertexInputState
-    {
-    private:
-        std::vector<vk::VertexInputBindingDescription> m_binding_descriptions;
-        std::vector<vk::VertexInputAttributeDescription> m_attribute_descriptions;
-
-    public:
-        PipelineVertexInputState() = default;
-        PipelineVertexInputState(std::vector<vk::VertexInputBindingDescription> binding_descriptions, std::vector<vk::VertexInputAttributeDescription> attribute_descriptions)
-            : m_binding_descriptions(std::move(binding_descriptions)), m_attribute_descriptions(std::move(attribute_descriptions)) {}
-        PipelineVertexInputState(const PipelineVertexInputState &) = default;
-        PipelineVertexInputState(PipelineVertexInputState &&) = default;
-
-        const std::vector<vk::VertexInputBindingDescription> &binding_descriptions() const { return m_binding_descriptions; }
-        const std::vector<vk::VertexInputAttributeDescription> &attribute_descriptions() const { return m_attribute_descriptions; }
-
-        vk::PipelineVertexInputStateCreateInfo pipeline_vertex_input_state() const;
-    };
-
-    class Vertex : public IVertex
+    class Vertex
     {
     public:
         jmath::vec3 pos;
-        jmath::vec3 color;
+        jmath::vec3 normal;
         jmath::vec2 tex_coord;
+
+        Vertex() : pos(0.0f), normal(0.0f), tex_coord(0.0f) {}
+        Vertex(jmath::vec3 pos, jmath::vec3 normal, jmath::vec2 tex_coord) : pos(pos), normal(normal), tex_coord(tex_coord) {}
 
         bool operator==(const Vertex &other) const
         {
-            return pos == other.pos && color == other.color && tex_coord == other.tex_coord;
-        }
-
-        static vk::VertexInputBindingDescription get_binding_description();
-        static std::vector<vk::VertexInputAttributeDescription> get_attribute_descriptions();
-        static PipelineVertexInputState get_pipeline_vertex_input_state();
-    };
-
-    template <typename VertexType = Vertex, typename IndexType = uint32_t, std::enable_if_t<std::is_base_of<IVertex, VertexType>::value, int> = 0>
-    struct MeshData
-    {
-        std::vector<VertexType> vertices;
-        std::vector<IndexType> indices;
-    };
-
-    template <typename VertexType = Vertex, typename IndexType = uint32_t, std::enable_if_t<std::is_base_of<IVertex, VertexType>::value, int> = 0>
-    class Mesh
-    {
-    private:
-        VertexBuffer<VertexType> m_vertex_buffer;
-        IndexBuffer<IndexType> m_index_buffer;
-
-    public:
-        Mesh(gsl::not_null<const LogicalDevice *> device, const CommandBuffer &command_buffer, const MeshData<VertexType> &mesh_data)
-            : m_vertex_buffer(device, command_buffer, mesh_data.vertices), m_index_buffer(device, command_buffer, mesh_data.indices) {}
-
-        const VertexBuffer<VertexType> &vertex_buffer() const { return m_vertex_buffer; }
-        const IndexBuffer<IndexType> &index_buffer() const { return m_index_buffer; }
-    };
-
-    template <typename VertexType = Vertex, typename IndexType = uint32_t, std::enable_if_t<std::is_base_of<IVertex, VertexType>::value, int> = 0>
-    class IMeshLoader
-    {
-    public:
-        virtual MeshData<VertexType, IndexType> load(const std::string &name) = 0;
-    };
-
-    class LogicalDevice;
-
-    template <typename VertexType = Vertex, typename IndexType = uint32_t, std::enable_if_t<std::is_base_of<IVertex, VertexType>::value, int> = 0>
-    class MeshResources
-    {
-    private:
-        gsl::not_null<const LogicalDevice *> m_device;
-        std::unique_ptr<const CommandBuffer> m_default_command_buffer;
-        Resources<std::string, const Mesh<VertexType, IndexType>> m_meshes;
-
-    public:
-        MeshResources(gsl::not_null<const LogicalDevice *> device, std::unique_ptr<const CommandBuffer> default_command_buffer) : m_device(device), m_default_command_buffer(std::move(default_command_buffer)) {}
-
-        std::shared_ptr<const Mesh<VertexType, IndexType>> get_mesh(const std::string &name, IMeshLoader<VertexType, IndexType> &&loader, const CommandBuffer *command_buffer = nullptr)
-        {
-            return std::make_shared<const Mesh<VertexType, IndexType>>(m_device, command_buffer ? *command_buffer : *m_default_command_buffer, loader.load(name));
-        }
-
-        std::shared_ptr<const Mesh<VertexType, IndexType>> make_mesh(const std::string &name, std::vector<VertexType> vertices, std::vector<IndexType> indices, const CommandBuffer *command_buffer = nullptr)
-        {
-            return m_meshes.create(name, vertices, indices);
+            return pos == other.pos && normal == other.normal && tex_coord == other.tex_coord;
         }
     };
 
-    using DefaultMesh = Mesh<Vertex, uint32_t>;
-}
-
-template <>
-struct std::hash<jre::Vertex>
-{
-    size_t operator()(jre::Vertex const &vertex) const
+    template <typename VertexType>
+    vk::VertexInputBindingDescription get_binding_description(uint32_t binding)
     {
-        return ((hash<jmath::vec3>()(vertex.pos) ^
-                 (hash<jmath::vec3>()(vertex.color) << 1)) >>
-                1) ^
-               (hash<jmath::vec2>()(vertex.tex_coord) << 1);
+        vk::VertexInputBindingDescription binding_description{};
+        binding_description.binding = binding;
+        binding_description.stride = sizeof(Vertex);
+        binding_description.inputRate = vk::VertexInputRate::eVertex;
+        return binding_description;
     }
-};
+
+    template <typename VertexType>
+    std::vector<vk::VertexInputAttributeDescription> get_attribute_descriptions(uint32_t binding) { return {}; }
+
+    template <>
+    inline std::vector<vk::VertexInputAttributeDescription> get_attribute_descriptions<Vertex>(uint32_t binding)
+    {
+        return {
+            {0, binding, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)},
+            {1, binding, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)},
+            {2, binding, vk::Format::eR32G32Sfloat, offsetof(Vertex, tex_coord)},
+        };
+    }
+
+    struct RenderSubMeshData
+    {
+        uint32_t vertex_offset;
+        uint32_t index_offset;
+        uint32_t index_count;
+    };
+
+    struct RenderMeshData
+    {
+        std::vector<vk::Buffer> vertexes;
+        vk::Buffer index_buffer;
+        vk::IndexType index_type;
+        std::vector<RenderSubMeshData> sub_meshes;
+    };
+
+    class IMesh
+    {
+    public:
+        virtual ~IMesh() = default;
+        virtual RenderMeshData get_render_data() = 0;
+        const RenderMeshData get_render_data() const { return const_cast<IMesh *>(this)->get_render_data(); }
+    };
+
+    class ISubMesh
+    {
+    public:
+        virtual RenderSubMeshData get_render_data() = 0;
+        const RenderSubMeshData get_render_data() const { return const_cast<ISubMesh *>(this)->get_render_data(); }
+    };
+
+    class SubMesh : public ISubMesh
+    {
+    public:
+        uint32_t vertex_offset;
+        uint32_t index_offset;
+        uint32_t index_count;
+
+        SubMesh(uint32_t vertex_offset, uint32_t index_offset, uint32_t index_count) : vertex_offset(vertex_offset), index_offset(index_offset), index_count(index_count) {}
+
+        RenderSubMeshData get_render_data() override { return {vertex_offset, index_offset, index_count}; }
+    };
+
+    class Mesh : public IMesh
+    {
+    public:
+        DynamicBuffer vertex_buffer;
+        DynamicBuffer index_buffer;
+        vk::IndexType index_type;
+        std::vector<SubMesh> sub_meshes;
+
+        RenderMeshData get_render_data() override
+        {
+            RenderMeshData mesh_data;
+            mesh_data.vertexes = {vertex_buffer.buffer().get()};
+            mesh_data.index_buffer = index_buffer.buffer().get();
+            mesh_data.index_type = index_type;
+            mesh_data.sub_meshes = sub_meshes |
+                                   std::views::transform([](SubMesh &sub_mesh)
+                                                         { return sub_mesh.get_render_data(); }) |
+                                   std::ranges::to<std::vector>();
+            return mesh_data;
+        }
+
+    private:
+    };
+
+    template <typename VertexType, typename IndexType>
+    class DeviceMeshBuilder
+    {
+    public:
+        DeviceArrayBufferBuilder<VertexType> vertex_buffer_builder;
+        DeviceArrayBufferBuilder<IndexType> index_buffer_builder;
+        DeviceMeshBuilder(vk::SharedDevice device,
+                          vk::PhysicalDevice physical_device,
+                          vk::CommandBuffer command_buffer,
+                          vk::Queue transfer_queue,
+                          vk::ArrayProxyNoTemporaries<VertexType> vertex_data,
+                          vk::ArrayProxyNoTemporaries<IndexType> index_data)
+            : vertex_buffer_builder(device, physical_device, command_buffer, transfer_queue, vertex_data),
+              index_buffer_builder(device, physical_device, command_buffer, transfer_queue, index_data)
+        {
+            vertex_buffer_builder.set_usage(vk::BufferUsageFlagBits::eVertexBuffer);
+            index_buffer_builder.set_usage(vk::BufferUsageFlagBits::eIndexBuffer);
+        }
+
+        Mesh build()
+        {
+            Mesh mesh;
+            mesh.vertex_buffer = vertex_buffer_builder.build();
+            mesh.index_buffer = index_buffer_builder.build();
+            mesh.index_type = vk::IndexTypeValue<IndexType>::value;
+            return mesh;
+        }
+    };
+
+    template <typename VertexType, typename IndexType>
+    class HostMesh : public IMesh
+    {
+    public:
+        HostArrayBuffer<VertexType> vertex_buffer;
+        HostArrayBuffer<IndexType> index_buffer;
+        std::vector<SubMesh> sub_meshes;
+
+        RenderMeshData get_render_data() override
+        {
+            RenderMeshData mesh_data;
+            mesh_data.vertexes = {vertex_buffer.vk_buffer()};
+            mesh_data.index_buffer = index_buffer.vk_buffer();
+            mesh_data.index_type = vk::IndexTypeValue<IndexType>::value;
+            mesh_data.sub_meshes = sub_meshes |
+                                   std::views::transform([](SubMesh &sub_mesh)
+                                                         { return sub_mesh.get_render_data(); }) |
+                                   std::ranges::to<std::vector>();
+            return mesh_data;
+        }
+    };
+
+}

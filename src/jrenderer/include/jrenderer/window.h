@@ -1,20 +1,14 @@
 #pragma once
 
 #include <windows.h>
-#include <list>
-#include "jmath.h"
+#include <vector>
 #include <functional>
+#include <memory>
+#include "jmath.h"
 
 namespace jre
 {
-
-    class IWindowMessageHandler
-    {
-    public:
-        virtual ~IWindowMessageHandler() = default;
-
-        virtual LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) = 0;
-    };
+    using WindowMessageHandler = std::function<LRESULT(HWND, UINT, WPARAM, LPARAM)>;
 
     class Window
     {
@@ -36,12 +30,12 @@ namespace jre
 
         HINSTANCE hinstance() const noexcept { return m_hinst; };
         HWND hwnd() const noexcept { return m_hwnd; };
-        using WinSize = jmath::ivec2;
+        using WinSize = jmath::uvec2;
         WinSize size() const;
-        int width() const { return size().x; }
-        int height() const { return size().y; }
+        uint32_t width() const { return size().x; }
+        uint32_t height() const { return size().y; }
 
-        std::list<std::reference_wrapper<IWindowMessageHandler>> message_handlers;
+        std::vector<WindowMessageHandler> message_handlers;
     };
 
 }
