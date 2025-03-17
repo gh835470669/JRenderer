@@ -2,30 +2,41 @@
 
 #include <vulkan/vulkan.hpp>
 #include <gsl/pointers>
+#include <vulkan/vulkan_shared.hpp>
+#include <variant>
 
 namespace jre
 {
-
-    class LogicalDevice;
-    class RenderPass
+    class RenderPassBuilder
     {
-    private:
-        vk::RenderPass m_render_pass;
-        gsl::not_null<const LogicalDevice *> m_device;
-
     public:
-        RenderPass() = default;
-        RenderPass(gsl::not_null<const LogicalDevice *> logical_device, vk::Format color_format, vk::Format depth_format, vk::SampleCountFlagBits sample_count = vk::SampleCountFlagBits::e1);
-        RenderPass(const RenderPass &) = delete;            // non-copyable
-        RenderPass &operator=(const RenderPass &) = delete; // non-copyable
-        RenderPass(RenderPass &&);
-        RenderPass &operator=(RenderPass &&);
-        ~RenderPass();
+        std::variant<vk::Device, vk::SharedDevice> device;
+        std::vector<vk::AttachmentDescription> attachments;
+        std::vector<vk::SubpassDescription> subpasses;
+        std::vector<vk::SubpassDependency> dependencies;
 
-        vk::RenderPass render_pass() const { return m_render_pass; }
-        operator vk::RenderPass() const { return m_render_pass; }
+        RenderPassBuilder(vk::Device device) : device(device) {}
+        RenderPassBuilder(vk::SharedDevice device) : device(device) {}
+        vk::AttachmentReference add_attachment(vk::AttachmentDescription attachment, vk::ImageLayout ref_layout);
+        vk::AttachmentReference add_color_attachment(vk::Format format, vk::SampleCountFlagBits sample_count = vk::SampleCountFlagBits::e1);
+        vk::AttachmentReference add_depth_attachment(vk::Format format, vk::SampleCountFlagBits sample_count = vk::SampleCountFlagBits::e1);
+        vk::AttachmentReference add_resolve_attachment(vk::Format format, vk::SampleCountFlagBits sample_count = vk::SampleCountFlagBits::e1);
 
-        void begin(vk::CommandBuffer command_buffer, vk::Framebuffer frame_buffer, vk::Rect2D render_area, vk::ClearColorValue color, vk::ClearDepthStencilValue depth_stencil) const;
-        void end(vk::CommandBuffer command_buffer) const;
+        RenderPassBuilder &add_dependency(vk::SubpassDependency dependency)
+        {
+            dependencies.push_back(dependency);
+            return *this;
+        }
+        RenderPassBuilder &add_subpass(vk::SubpassDescription subpass)
+        {
+            subpasses.push_back(subpass);
+            return *this;
+        }
+
+        vk::RenderPass build();
+        vk::SharedRenderPass make_shared();
+
+    private:
+        vk::RenderPassCreateInfo create_info();
     };
 }

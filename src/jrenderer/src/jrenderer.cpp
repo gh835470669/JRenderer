@@ -1,186 +1,66 @@
 #include "jrenderer.h"
-#include <iostream>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <chrono>
-#include "jrenderer/asset/obj_file.h"
 
 namespace jre
 {
     JRenderer::JRenderer(Window &window) : m_window(window),
                                            m_graphics(&window),
-                                           m_imgui_context(m_window, m_graphics),
-                                           camera_controller(input_manager),
-                                           star_rail_char_render_set(m_graphics.logical_device())
+                                           m_imgui_drawer(std::make_shared<imgui::ImguiDrawer>(m_window, m_graphics)),
+                                           m_scene_drawer(std::make_shared<SceneDrawer>(m_graphics))
     {
-        m_window.message_handlers.push_back(m_imgui_context);
-
+        m_window.message_handlers.push_back(std::bind(&imgui::ImguiDrawer::WindowProc, m_imgui_drawer.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        m_graphics.resize_funcs.push_back(std::bind(&imgui::ImguiDrawer::on_resize, m_imgui_drawer.get(), std::placeholders::_1, std::placeholders::_2));
+        m_graphics.resize_funcs.push_back(std::bind(&JRenderer::on_resize, this, std::placeholders::_1, std::placeholders::_2));
         input_manager.input_manager().SetDisplaySize(m_window.width(), m_window.height());
-
-        camera_controller.default_camera = camera_init();
-        camera_controller.default_camera.target_position = {0.0f, 15.0f, 40.0f};
-        auto orient = glm::quat(glm::vec3(0, 0, 0));
-        camera_controller.default_camera.orientation = {orient.x, orient.y, orient.z, orient.w};
-        camera_controller.camera = &camera;
-        camera_controller.reset_default_camera();
-
-        model_lingsha = std::move(load_lingsha<Texture2DDynamicMipmaps>(m_graphics,
-                                                                        *m_graphics.command_pool()->allocate_command_buffer(), star_rail_char_render_set.ubo.descriptor(), true));
-        model_lingsha.model_matrix = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        star_rail_char_render_set.render_objects.push_back(model_lingsha);
-        star_rail_char_render_set.descriptor_set = m_graphics.create_descriptor_set({{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}});
-        star_rail_char_render_set.descriptor_set->update_descriptor_sets({star_rail_char_render_set.ubo.descriptor()});
-
-        auto vert_shader = std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/star_rail_vert.spv");
-        auto frag_shader = std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/star_rail_frag.spv");
-        std::vector<vk::DescriptorSetLayout> descriptor_sets{star_rail_char_render_set.descriptor_set->descriptor_set_layout(),
-                                                             model_lingsha.sub_mesh_materials[0].descriptor_set->descriptor_set_layout()};
-        auto body_material_index = std::distance(model_lingsha.model_parts.begin(), std::find(model_lingsha.model_parts.begin(), model_lingsha.model_parts.end(), ModelPart::Body));
-        auto hair_material_index = std::distance(model_lingsha.model_parts.begin(), std::find(model_lingsha.model_parts.begin(), model_lingsha.model_parts.end(), ModelPart::Hair));
-        auto face_material_index = std::distance(model_lingsha.model_parts.begin(), std::find(model_lingsha.model_parts.begin(), model_lingsha.model_parts.end(), ModelPart::Face));
-
-        PipelineVertexInputState vertex_input_state = std::move(PmxVertex::get_pipeline_vertex_input_state(0));
-        star_rail_char_render_set.graphics_pipeline_body = std::make_shared<GraphicsPipeline>(
-            m_graphics.logical_device(),
-            GraphicsPipelineCreateInfo{
-                *m_graphics.render_pass(),
-                vert_shader,
-                frag_shader,
-                vertex_input_state,
-                {star_rail_char_render_set.descriptor_set->descriptor_set_layout(),
-                 model_lingsha.sub_mesh_materials[body_material_index].descriptor_set->descriptor_set_layout()},
-                {},
-                true,
-                false,
-                m_graphics.settings().msaa,
-                {},
-                vk::CullModeFlagBits::eNone});
-        star_rail_char_render_set.graphics_pipeline_hair = std::make_shared<GraphicsPipeline>(
-            m_graphics.logical_device(),
-            GraphicsPipelineCreateInfo{
-                *m_graphics.render_pass(),
-                vert_shader,
-                frag_shader,
-                vertex_input_state,
-                {star_rail_char_render_set.descriptor_set->descriptor_set_layout(),
-                 model_lingsha.sub_mesh_materials[hair_material_index].descriptor_set->descriptor_set_layout()},
-                {},
-                true,
-                false,
-                m_graphics.settings().msaa,
-                SpecializationConstants({{0, bytes(ModelPart::Hair)}}),
-                vk::CullModeFlagBits::eBack});
-        star_rail_char_render_set.graphics_pipeline_face = std::make_shared<GraphicsPipeline>(
-            m_graphics.logical_device(),
-            GraphicsPipelineCreateInfo{
-                *m_graphics.render_pass(),
-                vert_shader,
-                frag_shader,
-                vertex_input_state,
-                {star_rail_char_render_set.descriptor_set->descriptor_set_layout(),
-                 model_lingsha.sub_mesh_materials[face_material_index].descriptor_set->descriptor_set_layout()},
-                {},
-                true,
-                false,
-                m_graphics.settings().msaa,
-                SpecializationConstants({{0, bytes(ModelPart::Face)}}),
-                vk::CullModeFlagBits::eBack});
-        star_rail_char_render_set.graphics_pipeline_outline = std::make_shared<GraphicsPipeline>(
-            m_graphics.logical_device(),
-            GraphicsPipelineCreateInfo{
-                *m_graphics.render_pass(),
-                std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/backface_outline_vert.spv"),
-                std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/backface_outline_frag.spv"),
-                vertex_input_state,
-                {model_lingsha.sub_mesh_materials[0].outline_descriptor_set->descriptor_set_layout()},
-                {},
-                true,
-                false,
-                m_graphics.settings().msaa,
-                SpecializationConstants({{0, bytes(ModelPart::Body)}}),
-                vk::CullModeFlagBits::eFront});
-        star_rail_char_render_set.graphics_pipeline_outline_face = std::make_shared<GraphicsPipeline>(
-            m_graphics.logical_device(),
-            GraphicsPipelineCreateInfo{
-                *m_graphics.render_pass(),
-                std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/backface_outline_vert.spv"),
-                std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/backface_outline_frag.spv"),
-                vertex_input_state,
-                {model_lingsha.sub_mesh_materials[0].outline_descriptor_set->descriptor_set_layout()},
-                {},
-                true,
-                false,
-                m_graphics.settings().msaa,
-                SpecializationConstants({{0, bytes(ModelPart::Face)}}),
-                vk::CullModeFlagBits::eFront});
-        star_rail_char_render_set.main_light.set_direction(glm::vec3(1.0f, -1.0f, -1.0f));
-
-        star_rail_char_render_set_renderer.func_get_viewport = viewport::get_full_viewport;
-        star_rail_char_render_set_renderer.func_get_scissor = scissor::get_full_scissor;
-        star_rail_char_render_set_renderer.render_set = &star_rail_char_render_set;
-    }
-
-    JRenderer::~JRenderer()
-    {
+        add_tickers();
+        add_renderers();
     }
 
     void JRenderer::set_msaa(const vk::SampleCountFlagBits &msaa)
     {
         m_graphics.set_msaa(msaa);
-
-        star_rail_char_render_set.graphics_pipeline_body = std::make_shared<GraphicsPipeline>(
-            m_graphics.logical_device(),
-            GraphicsPipelineCreateInfo{
-                *m_graphics.render_pass(),
-                std::make_shared<VertexShader>(m_graphics.logical_device(), "res/shaders/star_rail_vert.spv"),
-                std::make_shared<FragmentShader>(m_graphics.logical_device(), "res/shaders/star_rail_frag.spv"),
-                PmxVertex::get_pipeline_vertex_input_state(0),
-                {star_rail_char_render_set.descriptor_set->descriptor_set_layout(),
-                 model_lingsha.sub_mesh_materials[0].descriptor_set->descriptor_set_layout()},
-                {},
-                true,
-                false,
-                msaa,
-                {},
-                vk::CullModeFlagBits::eBack});
-
-        m_imgui_context.on_msaa_changed();
+        add_renderers();
+        m_scene_drawer->on_set_msaa(m_graphics);
+        m_imgui_drawer->on_set_msaa(m_graphics);
     }
 
-    void JRenderer::new_imgui_frame()
+    void JRenderer::new_frame(TickContext context)
     {
-        m_imgui_context.new_frame();
+        tick(context);
+        draw();
     }
 
-    void JRenderer::new_frame(const TickContext &context)
+    void JRenderer::on_tick(TickContext context)
     {
+        SceneTickContext scene_tick_context{
+            context.delta_time,
+            m_graphics.current_cpu_frame(),
+            m_scene_drawer->scene};
+        for (auto &ticker : m_scene_ticker.tickers)
         {
-            ZoneScoped;
-            tick(context);
-        }
-        {
-            ZoneScoped;
-            m_imgui_context.pre_draw();
-            m_graphics.draw(
-                std::vector<IRenderSetRenderer *>{&star_rail_char_render_set_renderer, &m_imgui_context});
+            ticker->tick(scene_tick_context);
         }
     }
 
-    void JRenderer::tick(const TickContext &context)
+    void JRenderer::on_draw()
     {
-        static auto startTime = std::chrono::high_resolution_clock::now();
+        m_graphics.draw();
+    }
 
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    void JRenderer::on_resize(uint32_t width, uint32_t height)
+    {
+        input_manager.input_manager().SetDisplaySize(width, height);
+        m_scene_drawer->scene.render_viewports[0].viewport = vk::Viewport{0.f, 0.f, static_cast<float>(width), static_cast<float>(height), 0.f, 1.f};
+    }
 
-        // model_lingsha.model_matrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    void JRenderer::add_tickers()
+    {
+        m_scene_ticker.tickers.push_back(std::make_shared<SceneUBOTicker>());
+    }
 
-        camera_controller.tick(context);
-
-        float view_matrix[16];
-        camera_view_matrix(&camera, view_matrix);
-        star_rail_char_render_set.view_matrix = glm::make_mat4(view_matrix);
+    void JRenderer::add_renderers()
+    {
+        m_graphics.render_pass_drawer().subpass_drawers[0].recorders.push_back(m_scene_drawer);
+        m_graphics.render_pass_drawer().subpass_drawers[0].recorders.push_back(m_imgui_drawer);
     }
 
 } // namespace jre

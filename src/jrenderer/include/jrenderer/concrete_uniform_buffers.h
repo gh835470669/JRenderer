@@ -2,30 +2,47 @@
 
 #include "jmath.h"
 #include "jrenderer/light.h"
+#include <glm/ext/matrix_transform.hpp>
 
 namespace jre
 {
-    struct UniformMVP
+    struct UniformModelTransform
     {
-        jmath::mat4 model;
-        jmath::mat4 view;
-        jmath::mat4 proj;
+        glm::mat4 model = glm::identity<glm::mat4>();
+        glm::mat4 model_view;
+        glm::mat4 model_view_proj;
+    };
+
+    struct UniformCamera
+    {
+        glm::mat4 view;
+        glm::mat4 proj;
+        glm::mat4 view_proj;
     };
 
     // UBO : Uniform Buffer Object
     struct UniformPerRenderSet
     {
         UniformLight main_light;
+        UniformCamera camera_trans;
+    };
+
+    struct UniformScene
+    {
+        UniformLight main_light;
+        UniformCamera camera_trans;
     };
 
     struct UniformPerObject
     {
-        UniformMVP mvp;
+        UniformModelTransform mvp;
     };
 
     enum class UniformBufferSetIndex
     {
-        ePerRenderSet = 0,
-        ePerObject = 1
+        // PerFrame,
+        PerRenderSet,
+        PerObject,
+        PerMaterial
     };
 }

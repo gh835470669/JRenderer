@@ -1,52 +1,38 @@
 cmake_minimum_required(VERSION 3.11)
 
-project(JRenderer)
+project(JRenderApp)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
-
+# source files
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.h src/*.hpp)
+list(FILTER SOURCES EXCLUDE REGEX "src/jrenderer/.")
 
-# imgui
-file(GLOB IMGUI_SOURCES third_party/include/imgui/*.cpp
-  third_party/include/imgui/backends/imgui_impl_win32.cpp
-  third_party/include/imgui/backends/imgui_impl_vulkan.cpp
-  third_party/include/imgui/misc/cpp/imgui_stdlib.cpp)
-list(APPEND SOURCES ${IMGUI_SOURCES})
+# all third_party
+set(third_party_dir ${PROJECT_SOURCE_DIR}/third_party)
+set(third_party_include_dir ${third_party_dir}/include)
+include_directories("third_party/include")
+link_directories("third_party/lib") # 这个需要在add_executable之前，而不是target_link_libraries之前
+
 
 # tracy
 list(APPEND SOURCES "third_party/tracy/public/TracyClient.cpp")
-
-# mmd
-# file(GLOB MMD_SOURCES third_party/include/MMDLoader/pmd_reader.h
-#   third_party/include/MMDLoader/pmd_reader.cc
-#   third_party/include/MMDLoader/pmd_model.h
-#   third_party/include/MMDLoader/mmd_math.h)
-# list(APPEND SOURCES ${MMD_SOURCES})
-set(MMD_DIR third_party/MMDFormats/MikuMikuFormats)
-file(GLOB MMD_SOURCES ${MMD_DIR}/Pmx.h ${MMD_DIR}/Pmx.cpp ${MMD_DIR}/EncodingHelper.h
-)
-list(APPEND SOURCES ${MMD_SOURCES})
-
-include_directories("third_party/include")
-include_directories(${MMD_DIR})
-include_directories("third_party/include/imgui")
 include_directories("third_party/tracy/public")
-include_directories("third_party/gainput/lib/include")
 
 # gsl
 include_directories("third_party/GSL/include")
 
-
 include(FetchContent)
-# fmt 库
+# fmt 格式化输出
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt
-  GIT_TAG e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+  GIT_TAG e69e5f977d458f2650bb346dadf2ad30c5320281 # 10.2.1
+  EXCLUDE_FROM_ALL # 不用它的install
+)
 FetchContent_MakeAvailable(fmt)
 
-# glm库
+# glm 数学
 FetchContent_Declare(
   glm
   GIT_REPOSITORY https://github.com/g-truc/glm.git
@@ -54,38 +40,27 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
-# vulkan
-add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR)
-set(LIBS
-  "vulkan-1.lib"
-  "gainput.lib" # build by myself
-)
-link_directories("third_party/lib")
-# link_directories("third_party/bin")
-
-
-option(CAPPUCCINO_BUILD_EXAMPLES "Build the examples. Default=OFF" OFF)
-option(CAPPUCCINO_BUILD_TESTS "Build the tests. Default=OFF" OFF)
-FetchContent_Declare(
-  cappuccino
-  GIT_REPOSITORY https://github.com/jbaldwin/libcappuccino.git
-  GIT_TAG v1.0.0
-)
-FetchContent_MakeAvailable(cappuccino)
-
 add_subdirectory(src/jrenderer)
 
-add_executable(JRenderer WIN32 ${SOURCES})
-target_include_directories(JRenderer PUBLIC
-  "${PROJECT_SOURCE_DIR}/src/jrenderer/include"
+add_executable(JRenderApp WIN32 ${SOURCES})
+target_include_directories(JRenderApp PRIVATE "src/jrenderer/include" ${third_party_dir}/gainput/lib/include)
+target_link_libraries(JRenderApp PRIVATE JRenderer)
+target_compile_definitions(JRenderApp PRIVATE TRACY_ENABLE TRACY_HAS_CALLSTACK TRACY_CALLSTACK=20) # tracy
+
+
+# copy dll when build
+add_custom_command(TARGET JRenderApp
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:${PROJECT_NAME}> ${PROJECT_SOURCE_DIR}/third_party/bin/gainput/$<CONFIG>/gainput$<$<CONFIG:Debug>:-d>.dll
+  VERBATIM)
+
+# install
+install(TARGETS JRenderApp DESTINATION .)
+install(
+  FILES ${PROJECT_SOURCE_DIR}/third_party/bin/gainput/$<CONFIG>/gainput$<$<CONFIG:Debug>:-d>.dll
+  DESTINATION .
 )
-target_link_libraries(JRenderer PUBLIC ${LIBS} JRendererLib fmt::fmt)
-target_compile_definitions(JRenderer PUBLIC TRACY_ENABLE TRACY_HAS_CALLSTACK TRACY_CALLSTACK=20) # tracy
-target_compile_definitions(JRenderer PUBLIC NOMINMAX) # can use std::max
-target_compile_definitions(JRenderer PUBLIC GLM_FORCE_DEFAULT_ALIGNED_GENTYPES) # glm alignment 为了Uniform Buffer与Vulkan对齐
-if(WIN32)
-  # 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 [E:\JRenderer\build\JRenderer.vcxproj]
-  # 936 是 GB2312 字符集的代码页。
-  set_target_properties(JRenderer PROPERTIES COMPILE_FLAGS "/wd4819")
-  # set_target_properties(JRenderer PROPERTIES COMPILE_FLAGS "/utf-8") # mmd 的 pmd_reader.cc 用的是日文
-endif()
+install(
+  DIRECTORY "${PROJECT_SOURCE_DIR}/res"
+  DESTINATION .
+)

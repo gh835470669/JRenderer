@@ -7,35 +7,29 @@
 
 namespace jre
 {
-    template <typename Key, typename Value>
-    class DefaultValueLoader
-    {
-    public:
-        std::shared_ptr<Value> operator()(const Key &key) const
-        {
-            return std::make_shared<Value>(key);
-        }
-    };
-
-    template <typename Key, typename Value, typename ValueCreator = DefaultValueLoader<Key, Value>, cappuccino::thread_safe ThreadSafe = cappuccino::thread_safe::yes>
+    template <typename Key, typename Value, typename ValueCreator, cappuccino::thread_safe ThreadSafe = cappuccino::thread_safe::no>
     class Resources
     {
     public:
-        using ValueHandle = std::shared_ptr<Value>;
-
         Resources(const ValueCreator &value_loader = ValueCreator()) : m_value_loader(value_loader) {}
 
-        ValueHandle create(const Key &key)
+        bool contains(const Key &key)
         {
             std::lock_guard lock(m_mutex);
-            if (m_resources.find(key) == m_resources.end())
+            return m_resources.contains(key);
+        }
+
+        Value &get_or_create(const Key &key)
+        {
+            std::lock_guard lock(m_mutex);
+            if (!m_resources.contains(key))
             {
-                m_resources.emplace(key, m_value_loader(key));
+                return m_resources.emplace(key, m_value_loader(key));
             }
             return m_resources[key];
         }
 
-        void insert(const Key &key, const ValueHandle &value)
+        void insert(const Key &key, Value &&value)
         {
             std::lock_guard lock(m_mutex);
             m_resources.emplace(key, value);
@@ -52,7 +46,7 @@ namespace jre
     private:
         ValueCreator m_value_loader;
         cappuccino::mutex<ThreadSafe> m_mutex;
-        std::unordered_map<Key, ValueHandle> m_resources;
+        std::unordered_map<Key, Value> m_resources;
     };
 
 }

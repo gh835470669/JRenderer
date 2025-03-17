@@ -11,7 +11,9 @@ namespace jre
     class InputManager
     {
     public:
-        InputManager();
+        InputManager() : m_input_manager(),
+                         m_mouse_device(m_input_manager.CreateDevice<gainput::InputDeviceMouse>()),
+                         m_keyboard_device(m_input_manager.CreateDevice<gainput::InputDeviceKeyboard>()) {}
 
         gainput::InputManager &input_manager() { return m_input_manager; }
         operator gainput::InputManager &() { return m_input_manager; }
