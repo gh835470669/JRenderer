@@ -2,7 +2,7 @@
 
 set INPUT_FILE=%~nx1
 set OUTPUT_DIRECTORY=%~dp1
-set OUTPUT_FILE=%INPUT_FILE:.=_%.spv
+set OUTPUT_FILE=%INPUT_FILE%.spv
 @echo on
 %~dp0..\..\third_party\bin\vulkan\glslc.exe  %1 -o %OUTPUT_DIRECTORY%%OUTPUT_FILE%
 @echo off

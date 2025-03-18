@@ -24,8 +24,8 @@ namespace jre
                              {3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
                              {4, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment},
                              {5, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}}};
-        builder.vertex_shader_info.path = "res/shaders/star_rail_vert.spv";
-        builder.fragment_shader_info.path = "res/shaders/star_rail_frag.spv";
+        builder.vertex_shader_info.path = "res/shaders/star_rail.vert.spv";
+        builder.fragment_shader_info.path = "res/shaders/star_rail.frag.spv";
     }
 
     Material StarRailMaterialBuilder::build()
@@ -109,8 +109,8 @@ namespace jre
         builder.bindings = {{{0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment},
                              {1, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment},
                              {2, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}}};
-        builder.vertex_shader_info.path = "res/shaders/backface_outline_vert.spv";
-        builder.fragment_shader_info.path = "res/shaders/backface_outline_frag.spv";
+        builder.vertex_shader_info.path = "res/shaders/backface_outline.vert.spv";
+        builder.fragment_shader_info.path = "res/shaders/backface_outline.frag.spv";
         builder.pipeline_builder.set_rasterizer(
             vk::PipelineRasterizationStateCreateInfo{{}, false, false, vk::PolygonMode::eFill, vk::CullModeFlagBits::eFront, vk::FrontFace::eCounterClockwise, true, 10000.0f, 0.0f, 0.0f, 1.0f});
     }
