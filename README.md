@@ -15,15 +15,13 @@ git clone https://github.com/gh835470669/JRenderer.git
 2. cd JRenderer
 工作目录跳转到项目根目录
 3. mkdir build
-4. cd build
-5. cmake ..
+4. cmake -S. -B./build
 等待解决方案生成完毕，接着build项目
-6. cmake --build .  --config Release
+5. cmake --build ./build --config Release
 生成Relase版可执行文件
 然后安装（构造可运行环境：dll和资源目录）
-7. cd ..
-8. mkdir install
-9. cmake --install ./build --prefix ./install
+6. mkdir install
+7. cmake --install ./build --prefix ./install
 安装完毕，工作目录转到安装目录，运行 JRenderApp.exe
-11. cd install
-12. JRenderApp.exe
+8. cd install
+9. JRenderApp.exe
