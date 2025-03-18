@@ -47,6 +47,7 @@ target_include_directories(JRenderApp PRIVATE src/jrenderer/include ${third_part
 target_link_libraries(JRenderApp PRIVATE JRenderer)
 target_compile_definitions(JRenderApp PRIVATE TRACY_ENABLE TRACY_HAS_CALLSTACK TRACY_CALLSTACK=20) # tracy
 
+# ensure runtime environment
 # precompile shaders
 include(res/shaders/compile_shaders.cmake)
 compile_shaders()
