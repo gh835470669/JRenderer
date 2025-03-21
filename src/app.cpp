@@ -32,7 +32,13 @@ App::App(HINSTANCE hinst, HINSTANCE hprev, LPSTR cmdline, int show)
 
     jre::RenderViewport &viewport = scene.render_viewports.front();
     viewport.camera = camera_controller->default_camera;
+    viewport.camera.mode = CAMERA_MODE_DISABLE_ROLL;
+
+    //
     viewport.projection = glm::perspective(glm::radians(45.0f), viewport.viewport.width / viewport.viewport.height, 0.1f, 1000.f);
+
+    // GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
+    // The easiest way to compensate for that is to flip the sign on the scaling factor of the Y axis in the projection matrix
     viewport.projection[1][1] *= -1;
 
     scene.main_light.set_direction(glm::vec3(1.0f, -1.0f, -1.0f));

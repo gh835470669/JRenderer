@@ -30,6 +30,7 @@ void ImWinDebug::tick()
     present_mode();
     msaa();
     camera_info();
+    control_info();
     shader_properties();
 }
 
@@ -103,6 +104,17 @@ void ImWinDebug::camera_info()
         glm::vec3 orient_eular = glm::eulerAngles(glm::quat{camera.orientation.w, camera.orientation.x, camera.orientation.y, camera.orientation.z});
         orient_eular = glm::degrees(orient_eular);
         ImGui::Text("orientation: %f, %f, %f", orient_eular.x, orient_eular.y, orient_eular.z);
+    }
+}
+
+void ImWinDebug::control_info()
+{
+    if (ImGui::CollapsingHeader("Control", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Text("WASD: move camera");
+        ImGui::Text("Shift + WASD: move camera faster");
+        ImGui::Text("R: reset camera");
+        ImGui::Text("Hold Mouse Right Click: rotate camera");
     }
 }
 

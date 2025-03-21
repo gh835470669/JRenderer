@@ -13,6 +13,7 @@ public:
     ImWinDebug(Statistics &stat, jre::JRenderer &renderer);
     void tick();
 
+    void control_info();
     void camera_info();
     void frame_info();
     void present_mode();

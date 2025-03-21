@@ -57,8 +57,7 @@ namespace jre
         return material;
     }
 
-    MaterialInstance
-    Material::create_instance(uint32_t frame_count)
+    MaterialInstance Material::create_instance(uint32_t frame_count)
     {
         return MaterialInstance(*this, vk::shared::allocate_descriptor_sets(descriptor_pool,
                                                                             std::vector<vk::DescriptorSetLayout>(frame_count, descriptor_set_layout.get())));

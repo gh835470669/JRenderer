@@ -42,7 +42,7 @@ namespace jre
         std::vector<vk::SharedDescriptorSet> descriptor_sets;
 
         MaterialInstance(Material material, std::vector<vk::SharedDescriptorSet> descriptor_sets) : material(material), descriptor_sets(descriptor_sets) {}
-        void update_descriptor_set_data(uint32_t cur_frame) override {}
+        void update_descriptor_set_data(uint32_t) override {}
         RenderMaterialData get_render_data(uint32_t cur_frame) override
         {
             return {
