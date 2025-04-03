@@ -5,6 +5,7 @@
 A c++ vulkan renderer to learn
 
 ## Build, Install And Run
+Only in Windows platform (窗口系统使用的是raw win32 api)
 use [CMake](https://cmake.org/)
 
 1. git clone https://github.com/gh835470669/JRenderer.git --recurse-submodules
@@ -30,11 +31,13 @@ git clone https://github.com/gh835470669/JRenderer.git
 ## Features
 * [Vulkan](https://www.vulkan.org/) cross-platform graphics api
   * 使用<vulkan/vulkan_shared.hpp> easy to shared raii vulkan resource
-  * **builder pattern** to buld vulkan resource
-  * Multi CPU Frame
+  * **builder pattern** to build vulkan resource
+  * Multiple Frames in Flight
+  * Material System (Material + Material Instance)
   * [Specialization Constants](https://docs.vulkan.org/samples/latest/samples/performance/specialization_constants/README.html)
   * [scalar alignment](https://docs.vulkan.org/guide/latest/shader_memory_layout.html)
   * [Runtime mip-map generation](https://docs.vulkan.org/samples/latest/samples/api/texture_mipmap_generation/README.html)
+  * [MSAA (Multisample anti-aliasing)](https://docs.vulkan.org/samples/latest/samples/performance/msaa/README.html)
 * C++
 	* [glm](https://github.com/g-truc/glm) C++ mathematics library
 	* [fmt](https://github.com/fmtlib/fmt) formatting library
@@ -51,5 +54,7 @@ git clone https://github.com/gh835470669/JRenderer.git
 	* [RenderDoc](https://renderdoc.org/) graphics debugger
 * Shading
   * Non-photorealistic rendering (NPR)
+  * Reference for Unity Shader [HoyoToon](https://github.com/Hoyotoon/HoyoToon)
   * ramp texture
   * Vertex Extrusion Outline ([5 ways to draw an outline](https://ameye.dev/notes/rendering-outlines/))
+  

@@ -26,7 +26,7 @@ namespace jre
         std::memcpy(m_data, other.m_data, other.m_width * other.m_height * other.m_channels);
     }
 
-    STBImage &STBImage::operator=(const STBImage &other) noexcept
+    STBImage &STBImage::operator=(const STBImage &other)
     {
         if (this == &other)
         {
@@ -35,7 +35,7 @@ namespace jre
         return *this = STBImage(other);
     }
 
-    STBImage::STBImage(STBImage &&other)
+    STBImage::STBImage(STBImage &&other) noexcept
         : m_width(other.m_width),
           m_height(other.m_height),
           m_channels(other.m_channels),
@@ -49,10 +49,10 @@ namespace jre
         {
             return *this;
         }
-        std::swap(m_width, other.m_width);
-        std::swap(m_height, other.m_height);
-        std::swap(m_channels, other.m_channels);
-        std::swap(m_data, other.m_data);
+        m_width = other.m_width;
+        m_height = other.m_height;
+        m_channels = other.m_channels;
+        m_data = std::exchange(other.m_data, nullptr);
         return *this;
     }
 

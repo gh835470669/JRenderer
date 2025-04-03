@@ -16,8 +16,8 @@ namespace jre
     public:
         STBImage(const std::string &file_name);
         STBImage(const STBImage &);
-        STBImage &operator=(const STBImage &) noexcept;
-        STBImage(STBImage &&other);
+        STBImage &operator=(const STBImage &);
+        STBImage(STBImage &&other) noexcept;
         STBImage &operator=(STBImage &&other) noexcept;
         ~STBImage();
         uint32_t width() const { return m_width; }
